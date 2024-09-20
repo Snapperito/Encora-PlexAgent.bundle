@@ -73,38 +73,24 @@ def encora_api_key():
 
 ###
 def json_load(template, *args):
-    url = template.format(*args)
-    url = sanitize_path(url)
-    iteration = 0
-    json_page = {}
-    json_data = {}
-
-    # Bearer token
-    headers = {
-        'Authorization': 'Bearer {}'.format(encora_api_key())  # Use the bearer token
-    }
-
-    while not json_data or Dict(json_page, 'nextPageToken') and Dict(json_page, 'pageInfo', 'resultsPerPage') != 1 and iteration < 50:
-        try:
-            full_url = url + '&pageToken=' + Dict(json_page, 'nextPageToken') if Dict(json_page, 'nextPageToken') else url
-            json_page = JSON.ObjectFromURL(full_url, headers=headers)  # Pass headers to the request
-        except Exception as e:
-            json_data = JSON.ObjectFromString(e.content)
-            raise ValueError('code: {}, message: {}'.format(Dict(json_data, 'error', 'code'), Dict(json_data, 'error', 'message')))
-        
-        if json_data:
-            json_data['items'].extend(json_page['items'])
-        else:
-            json_data = json_page
-        
-        iteration += 1
-
-    return json_data
-
+  url = template.format(*args + tuple([encora_api_key()]))
+  url = sanitize_path(url)
+  iteration = 0
+  json_page = {}
+  json      = {}
+  while not json or Dict(json_page, 'nextPageToken') and Dict(json_page, 'pageInfo', 'resultsPerPage') !=1 and iteration<50:
+    #Log.Info(u'{}'.format(Dict(json_page, 'pageInfo', 'resultsPerPage')))
+    try:                    json_page = JSON.ObjectFromURL(url+'&pageToken='+Dict(json_page, 'nextPageToken') if Dict(json_page, 'nextPageToken') else url)  #Log.Info(u'items: {}'.format(len(Dict(json_page, 'items'))))
+    except Exception as e:  json = JSON.ObjectFromString(e.content);  raise ValueError('code: {}, message: {}'.format(Dict(json, 'error', 'code'), Dict(json, 'error', 'message')))
+    if json:  json ['items'].extend(json_page['items'])
+    else:     json = json_page
+    iteration +=1
+  #Log.Info(u'total items: {}'.format(len(Dict(json, 'items'))))
+  return json
 
 def Start():
   HTTP.CacheTime                  = CACHE_1MONTH
-  HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+  HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (iPad; CPU OS 7_0_4 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11B554a Safari/9537.54'
   HTTP.Headers['Accept-Language'] = 'en-us'
 
 ### Assign unique ID ###
@@ -286,7 +272,20 @@ PLEX_LIBRARY_URL         = "http://127.0.0.1:32400/library/sections/"    # Allow
 ENCORA_API_BASE_URL      = "https://encora.it/api/"
 ENCORA_API_RECORDING_INFO= ENCORA_API_BASE_URL + 'recording/{}' # fetch recording data
 
-
+# YOUTUBE_CHANNEL_DETAILS  = ENCORA_API_BASE_URL + 'channels?part=snippet%2CcontentDetails%2Cstatistics%2CbrandingSettings&id={}&key={}'
+# YOUTUBE_CHANNEL_REGEX    = Regex('\[(?:youtube(|2)\-)?(?P<id>UC[a-zA-Z0-9\-_]{22}|HC[a-zA-Z0-9\-_]{22})\]')
+# YOUTUBE_PLAYLIST_ITEMS   = ENCORA_API_BASE_URL + 'playlistItems?part=snippet,contentDetails&maxResults=50&playlistId={}&key={}'
+# YOUTUBE_PLAYLIST_DETAILS = ENCORA_API_BASE_URL + 'playlists?part=snippet,contentDetails&id={}&key={}'
+# YOUTUBE_PLAYLIST_REGEX   = Regex('\[(?:youtube(|3)\-)?(?P<id>PL[^\[\]]{16}|PL[^\[\]]{32}|UU[^\[\]]{22}|FL[^\[\]]{22}|LP[^\[\]]{22}|RD[^\[\]]{22}|UC[^\[\]]{22}|HC[^\[\]]{22})\]',  Regex.IGNORECASE)  # https://regex101.com/r/37x8wI/2
+# YOUTUBE_VIDEO_SEARCH     = ENCORA_API_BASE_URL + 'search?&maxResults=1&part=snippet&q={}&key={}'
+# YOUTUBE_json_video_details    = ENCORA_API_BASE_URL + 'videos?part=snippet,contentDetails,statistics&id={}&key={}'
+# YOUTUBE_VIDEO_REGEX      = Regex('(?:^\d{8}_|\[(?:youtube\-)?)(?P<id>[a-z0-9\-_]{11})(?:\]|_)', Regex.IGNORECASE) # https://regex101.com/r/zlHKPD/1
+# YOUTUBE_CATEGORY_ID      = {  '1': 'Film & Animation',  '2': 'Autos & Vehicles',  '10': 'Music',          '15': 'Pets & Animals',        '17': 'Sports',                 '18': 'Short Movies',
+#                              '19': 'Travel & Events',  '20': 'Gaming',            '21': 'Videoblogging',  '22': 'People & Blogs',        '23': 'Comedy',                 '24': 'Entertainment',
+#                              '25': 'News & Politics',  '26': 'Howto & Style',     '27': 'Education',      '28': 'Science & Technology',  '29': 'Nonprofits & Activism',  '30': 'Movies',
+#                              '31': 'Anime/Animation',  '32': 'Action/Adventure',  '33': 'Classics',       '34': 'Comedy',                '35': 'Documentary',            '36': 'Drama', 
+#                              '37': 'Family',           '38': 'Foreign',           '39': 'Horror',         '40': 'Sci-Fi/Fantasy',        '41': 'Thriller',               '42': 'Shorts',
+#                              '43': 'Shows',            '44': 'Trailers'}
 ### Plex Library XML ###
 Log.Info(u"Library: "+PlexRoot)  #Log.Info(file)
 token_file_path = os.path.join(PlexRoot, "X-Plex-Token.id")
