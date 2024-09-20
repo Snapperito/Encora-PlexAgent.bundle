@@ -1,0 +1,8 @@
+[
+  {
+    "id": "encora_api_key",
+    "label": "Encora API Key (put your own key)",
+    "type": "text",
+    "default": ""
+  }
+]
