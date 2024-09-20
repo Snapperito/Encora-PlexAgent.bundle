@@ -179,7 +179,6 @@ def Update(metadata, media, lang, force, movie):
         if json_recording_details:
             # Update metadata fields based on the Encora API response
             metadata.title = json_recording_details['show']
-            metadata.sort_title = json_recording_details['show']
             metadata.original_title = json_recording_details['show']
             metadata.originally_available_at = Datetime.ParseDate(json_recording_details['date']['full_date']).date()
             metadata.studio = json_recording_details['tour']
@@ -210,8 +209,8 @@ def Update(metadata, media, lang, force, movie):
                 role.photo = cast_member['performer']['url']  # Assuming the URL can be used as a photo
 
             # Log the updated metadata
-            Log(u'Updated metadata: title="{}", sort_title="{}", original_title="{}", originally_available_at="{}", studio="{}", director="{}", content_rating="{}", genres="{}", roles="{}"'.format(
-                metadata.title, metadata.sort_title, metadata.original_title, metadata.originally_available_at, metadata.studio, director.name, metadata.content_rating, list(metadata.genres), [(role.actor, role.role) for role in metadata.roles]
+            Log(u'Updated metadata: title="{}", original_title="{}", originally_available_at="{}", studio="{}", director="{}", content_rating="{}", genres="{}", roles="{}"'.format(
+                metadata.title,  metadata.original_title, metadata.originally_available_at, metadata.studio, director.name, metadata.content_rating, list(metadata.genres), [(role.actor, role.role) for role in metadata.roles]
             ))
 
             return
