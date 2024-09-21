@@ -4,5 +4,11 @@
     "label": "Encora API Key (put your own key)",
     "type": "text",
     "default": ""
+  },
+  {
+    "id": "add_master_as_director",
+    "label": "Add master as director",
+    "type": "bool",
+    "default": true
   }
 ]

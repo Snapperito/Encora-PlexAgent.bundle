@@ -9,6 +9,8 @@ import urllib2              #
 from   lxml    import etree #
 from   io      import open  # open
 import hashlib
+from datetime import datetime
+import time
 
 ###Mini Functions ###
 def natural_sort_key     (s):  return [int(text) if text.isdigit() else text for text in re.split(re.compile('([0-9]+)'), str(s).lower())]  ### Avoid 1, 10, 2, 20... #Usage: list.sort(key=natural_sort_key), sorted(list, key=natural_sort_key)
@@ -33,6 +35,13 @@ def GetMediaDir (media, movie, file=False):
       for e in media.seasons[s].episodes:
         Log.Info(media.seasons[s].episodes[e].items[0].parts[0].file)
         return media.seasons[s].episodes[e].items[0].parts[0].file if file else os.path.dirname(media.seasons[s].episodes[e].items[0].parts[0].file)
+
+# Function to parse ISO 8601 date string and handle 'Z' for UTC
+def parse_iso8601(nft_date):
+    if nft_date.endswith('Z'):
+        nft_date = nft_date[:-1]  # Remove the 'Z'
+        return datetime.strptime(nft_date, '%Y-%m-%dT%H:%M:%S.%f')  # Parse the datetime string
+    return None  # Return None if the format is unexpected
 
 ### Get media root folder ###
 def GetLibraryRootPath(dir):
@@ -87,16 +96,26 @@ def json_load(template, *args):
     while not json_data or Dict(json_page, 'nextPageToken') and Dict(json_page, 'pageInfo', 'resultsPerPage') != 1 and iteration < 50:
         try:
             full_url = url + '&pageToken=' + Dict(json_page, 'nextPageToken') if Dict(json_page, 'nextPageToken') else url
-            json_page = JSON.ObjectFromURL(full_url, headers=headers)  # Pass headers to the request
+            response = HTTP.Request(full_url, headers=headers, cacheTime=0)
+            json_page = JSON.ObjectFromString(response.content)
+
+            # Check the rate limit headers
+            rate_limit_remaining = int(response.headers.get('X-RateLimit-Remaining', 1))  # Default to 1 if header is missing
+            retry_after = int(response.headers.get('RetryAfter', 0))  # Default to 0 if header is missing
+
+            if rate_limit_remaining <= 0 and retry_after > 0:
+                Log(u'Rate limit reached. Retrying after {} seconds'.format(retry_after))
+                time.sleep(retry_after)  # Wait for the RetryAfter duration before retrying
+
         except Exception as e:
             json_data = JSON.ObjectFromString(e.content)
             raise ValueError('code: {}, message: {}'.format(Dict(json_data, 'error', 'code'), Dict(json_data, 'error', 'message')))
-        
+
         if json_data:
             json_data['items'].extend(json_page['items'])
         else:
             json_data = json_page
-        
+
         iteration += 1
 
     return json_data
@@ -189,7 +208,18 @@ def Update(metadata, media, lang, force, movie):
             # Set content rating based on NFT status
             nft_date = json_recording_details['nft']['nft_date']
             nft_forever = json_recording_details['nft']['nft_forever']
-            if nft_forever or (nft_date and Datetime.ParseDate(nft_date) < Datetime.Now()):
+
+            # Parse the nft_date in ISO 8601 format
+            if nft_date:
+                nft_date_parsed = parse_iso8601(nft_date)
+            else:
+                nft_date_parsed = None
+
+            # Get the current time in UTC (naive datetime)
+            current_time = datetime.utcnow()
+
+            # Compare only when nft_date is present and properly parsed
+            if nft_forever or (nft_date_parsed and nft_date_parsed < current_time):
                 metadata.content_rating = 'NFT'
 
             # Update genres based on recording type
@@ -200,13 +230,25 @@ def Update(metadata, media, lang, force, movie):
             if json_recording_details['metadata']['media_type']:
                 metadata.genres.add(json_recording_details['metadata']['media_type'])
 
-            # Set cast and crew
             metadata.roles.clear()
             for cast_member in json_recording_details['cast']:
                 role = metadata.roles.new()
-                role.actor = cast_member['performer']['name']
-                role.role = cast_member['character']['name']
-                role.photo = cast_member['performer']['url']  # Assuming the URL can be used as a photo
+                role.name = cast_member['performer']['name'] # Performer name = role.name
+                if cast_member['status']:
+                    role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name'] # Character status + name = role.role
+                else:
+                    role.role = cast_member['character']['name'] # Character name = role.role
+                #role.photo = cast_member['performer']['url'] # this needs to query new headshot database
+                Log(u'Found Cast Member: actor: {}, role: {}'.format(role.name, role.role))
+            if Prefs['add_master_as_director']:
+                metadata.directors.clear()
+                try:
+                    meta_director = metadata.directors.new()
+                    meta_director.name = json_recording_details['master']
+                    Log(u'director: {}'.format(json_recording_details['master']))
+                except Exception as e:
+                    Log.Info(u'[!] add_master_as_director exception: {}'.format(e))
+            return
 
             # Log the updated metadata
             Log(u'Updated metadata: title="{}", original_title="{}", originally_available_at="{}", studio="{}", director="{}", content_rating="{}", genres="{}", roles="{}"'.format(
@@ -247,25 +289,38 @@ def Update(metadata, media, lang, force, movie):
         # Set content rating based on NFT status
         nft_date = json_recording_details['nft']['nft_date']
         nft_forever = json_recording_details['nft']['nft_forever']
-        if nft_forever or (nft_date and Datetime.ParseDate(nft_date) < Datetime.Now()):
+
+        # Parse the nft_date in ISO 8601 format
+        if nft_date:
+            nft_date_parsed = parse_iso8601(nft_date)
+        else:
+            nft_date_parsed = None
+
+        # Get the current time in UTC (naive datetime)
+        current_time = datetime.utcnow()
+
+        # Compare only when nft_date is present and properly parsed
+        if nft_forever or (nft_date_parsed and nft_date_parsed < current_time):
             metadata.content_rating = 'NFT'
         
-        # Set cast and crew
         metadata.roles.clear()
         for cast_member in json_recording_details['cast']:
             role = metadata.roles.new()
-            role.actor = cast_member['performer']['name']
-            role.role = cast_member['character']['name']
+            role.name = cast_member['performer']['name'] # Performer name = role.name
+            if cast_member['status']:
+                role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name'] # Character status + name = role.role
+            else:
+                role.role = cast_member['character']['name'] # Character name = role.role
             #role.photo = cast_member['performer']['url'] # this needs to query new headshot database
-        
-        if Prefs['add_user_as_director']:
+            Log(u'Found Cast Member: actor: {}, role: {}'.format(role.name, role.role))
+        if Prefs['add_master_as_director']:
             metadata.directors.clear()
             try:
                 meta_director = metadata.directors.new()
                 meta_director.name = json_recording_details['master']
                 Log(u'director: {}'.format(json_recording_details['master']))
             except Exception as e:
-                Log.Info(u'[!] add_user_as_director exception: {}'.format(e))
+                Log.Info(u'[!] add_master_as_director exception: {}'.format(e))
         return
     
     Log('=== End Of Agent Call, errors after that are Plex related ==='.ljust(157, '='))
