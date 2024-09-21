@@ -78,7 +78,22 @@ def month_name(month):
         "July", "August", "September", "October", "November", "December"
     ][month]
 
-
+def clean_html_description(html_description):
+    # log input
+    Log.Info(u'html_description: "{}"'.format(html_description))
+    # Preserve line breaks
+    text = re.sub(r'</p>', '\n', html_description)
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Manually replace common HTML entities
+    text = text.replace('&#039;', "'")
+    text = text.replace('&quot;', '"')
+    text = text.replace('&amp;', '&')
+    text = text.replace('&lt;', '<')
+    text = text.replace('&gt;', '>')
+    # log output
+    Log.Info(u'text: "{}"'.format(text))
+    return text
 
 ### Get media root folder ###
 def GetLibraryRootPath(dir):
@@ -149,7 +164,7 @@ def json_load(template, *args):
 
 
 def Start():
-  HTTP.CacheTime                  = CACHE_1DAY
+  #HTTP.CacheTime                  = CACHE_1DAY
   HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
   HTTP.Headers['Accept-Language'] = 'en-us'
 
@@ -231,11 +246,10 @@ def Update(metadata, media, lang, force, movie):
             metadata.directors.clear()
             director = metadata.directors.new()
             director.name = json_recording_details['master']
-            Log(u'Metadata block: {}'.format(json_recording_details.get('metadata', {})))
-            metadata.summary = json_recording_details.get('metadata', {}).get('show_description', 'Not provided. Edit the show on Encora to populate this!')
-            Log(u'Updated metadata: title="{}", original_title="{}", originally_available_at="{}", studio="{}", director="{}", summary="{}"'.format(
-                metadata.title, metadata.original_title, metadata.originally_available_at, metadata.studio, director.name, metadata.summary
-            ))
+            show_description_html = json_recording_details.get('metadata', {}).get('show_description', 'Not provided. Edit the show on Encora to populate this!')
+            show_description = clean_html_description(show_description_html)
+            metadata.summary = show_description
+
 
             # Set content rating based on NFT status
             nft_date = json_recording_details['nft']['nft_date']
@@ -304,7 +318,9 @@ def Update(metadata, media, lang, force, movie):
         Log('date:  "{}"'.format(date))
         metadata.originally_available_at = date.date()
         format_title(Prefs['title_format'], json_recording_details)
-        metadata.summary = json_recording_details['metadata']['show_description']
+        show_description_html = json_recording_details.get('metadata', {}).get('show_description', 'Not provided. Edit the show on Encora to populate this!')
+        show_description = clean_html_description(show_description_html)
+        metadata.summary = show_description
         metadata.genres.clear()
         recording_type = json_recording_details['metadata']['recording_type']
         if recording_type:
