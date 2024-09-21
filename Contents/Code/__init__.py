@@ -353,7 +353,7 @@ def Update(metadata, media, lang, force, movie):
 
 ### Agent declaration ##################################################################################################################################################
 class EncoraAgent(Agent.Movies):
-  name, primary_provider, fallback_agent, contributes_to, accepts_from, languages = 'Encora', True, None, None, ['com.plexapp.agents.localmedia'], [Locale.Language.NoLanguage]
+  name, primary_provider, fallback_agent, contributes_to, accepts_from, languages = 'Encora', True, ['com.plexapp.agents.xbmcnfo'], None, ['com.plexapp.agents.localmedia', 'com.plexapp.agents.xbmcnfo'], [Locale.Language.NoLanguage]
   def search (self, results,  media, lang, manual):  Search (results,  media, lang, manual, True)
   def update (self, metadata, media, lang, force ):  Update (metadata, media, lang, force,  True)
 
