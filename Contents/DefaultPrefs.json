@@ -10,5 +10,11 @@
     "label": "Add master as director",
     "type": "bool",
     "default": true
+  },
+  {
+    "id": "title_format",
+    "label": "Title format (Variables: {show}, {date}, {tour}, {master})",
+    "type": "text",
+    "default": "{show}"
   }
 ]

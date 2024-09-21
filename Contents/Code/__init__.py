@@ -43,6 +43,43 @@ def parse_iso8601(nft_date):
         return datetime.strptime(nft_date, '%Y-%m-%dT%H:%M:%S.%f')  # Parse the datetime string
     return None  # Return None if the format is unexpected
 
+# Used for the preference to define the format of Plex Titles
+def format_title(template, data):
+    # Log inputs
+    Log.Info(u'template: "{}"'.format(template))
+    
+    date_info = data.get('date', {})
+    full_date = ""
+    
+    if date_info.get('day_known') is False:
+        if date_info.get('month_known') is False:
+            full_date = date_info.get('full_date')[:4]  # Return YYYY
+        else:
+            full_date = "{}, {}".format(month_name(date_info.get('month', 1)), date_info.get('full_date')[:4])  # Return Month, YYYY
+    else:
+        full_date = date_info.get('full_date', '').lower()
+        date_variant = date_info.get('date_variant')
+        if date_variant:
+            full_date += " ({})".format(date_variant)
+
+    title = template
+    title = title.replace('{show}', data.get('show', ''))
+    title = title.replace('{tour}', data.get('tour', ''))
+    title = title.replace('{date}', full_date)
+    title = title.replace('{master}', data.get('master', ''))
+
+    Log.Info(u'output title: "{}"'.format(title))
+    return title
+
+def month_name(month):
+    # Return the full name of the month
+    return [
+        "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ][month]
+
+
+
 ### Get media root folder ###
 def GetLibraryRootPath(dir):
   library, root, path = '', '', ''
@@ -96,26 +133,16 @@ def json_load(template, *args):
     while not json_data or Dict(json_page, 'nextPageToken') and Dict(json_page, 'pageInfo', 'resultsPerPage') != 1 and iteration < 50:
         try:
             full_url = url + '&pageToken=' + Dict(json_page, 'nextPageToken') if Dict(json_page, 'nextPageToken') else url
-            response = HTTP.Request(full_url, headers=headers, cacheTime=0)
-            json_page = JSON.ObjectFromString(response.content)
-
-            # Check the rate limit headers
-            rate_limit_remaining = int(response.headers.get('X-RateLimit-Remaining', 1))  # Default to 1 if header is missing
-            retry_after = int(response.headers.get('RetryAfter', 0))  # Default to 0 if header is missing
-
-            if rate_limit_remaining <= 0 and retry_after > 0:
-                Log(u'Rate limit reached. Retrying after {} seconds'.format(retry_after))
-                time.sleep(retry_after)  # Wait for the RetryAfter duration before retrying
-
+            json_page = JSON.ObjectFromURL(full_url, headers=headers)  # Pass headers to the request
         except Exception as e:
             json_data = JSON.ObjectFromString(e.content)
             raise ValueError('code: {}, message: {}'.format(Dict(json_data, 'error', 'code'), Dict(json_data, 'error', 'message')))
-
+        
         if json_data:
             json_data['items'].extend(json_page['items'])
         else:
             json_data = json_page
-
+        
         iteration += 1
 
     return json_data
@@ -197,7 +224,7 @@ def Update(metadata, media, lang, force, movie):
         json_recording_details = json_load(ENCORA_API_RECORDING_INFO, recording_id)
         if json_recording_details:
             # Update metadata fields based on the Encora API response
-            metadata.title = json_recording_details['show']
+            metadata.title = format_title(Prefs['title_format'], json_recording_details)
             metadata.original_title = json_recording_details['show']
             metadata.originally_available_at = Datetime.ParseDate(json_recording_details['date']['full_date']).date()
             metadata.studio = json_recording_details['tour']
@@ -239,7 +266,6 @@ def Update(metadata, media, lang, force, movie):
                 else:
                     role.role = cast_member['character']['name'] # Character name = role.role
                 #role.photo = cast_member['performer']['url'] # this needs to query new headshot database
-                Log(u'Found Cast Member: actor: {}, role: {}'.format(role.name, role.role))
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
                 try:
@@ -272,7 +298,7 @@ def Update(metadata, media, lang, force, movie):
         date = Datetime.ParseDate(json_recording_details['date']['full_date'])
         Log('date:  "{}"'.format(date))
         metadata.originally_available_at = date.date()
-        metadata.title = json_recording_details['show']
+        format_title(Prefs['title_format'], json_recording_details)
         Log(u'series title:       "{}"'.format(json_recording_details['show']))
         metadata.summary = json_recording_details['notes']
         Log(u'series description: {}'.format(json_recording_details['notes'].replace('\n', '. ')))
