@@ -149,7 +149,7 @@ def json_load(template, *args):
 
 
 def Start():
-  HTTP.CacheTime                  = CACHE_1MONTH
+  HTTP.CacheTime                  = CACHE_1DAY
   HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
   HTTP.Headers['Accept-Language'] = 'en-us'
 
@@ -231,6 +231,11 @@ def Update(metadata, media, lang, force, movie):
             metadata.directors.clear()
             director = metadata.directors.new()
             director.name = json_recording_details['master']
+            Log(u'Metadata block: {}'.format(json_recording_details.get('metadata', {})))
+            metadata.summary = json_recording_details.get('metadata', {}).get('show_description', 'Not provided. Edit the show on Encora to populate this!')
+            Log(u'Updated metadata: title="{}", original_title="{}", originally_available_at="{}", studio="{}", director="{}", summary="{}"'.format(
+                metadata.title, metadata.original_title, metadata.originally_available_at, metadata.studio, director.name, metadata.summary
+            ))
 
             # Set content rating based on NFT status
             nft_date = json_recording_details['nft']['nft_date']
@@ -299,9 +304,7 @@ def Update(metadata, media, lang, force, movie):
         Log('date:  "{}"'.format(date))
         metadata.originally_available_at = date.date()
         format_title(Prefs['title_format'], json_recording_details)
-        Log(u'series title:       "{}"'.format(json_recording_details['show']))
-        metadata.summary = json_recording_details['notes']
-        Log(u'series description: {}'.format(json_recording_details['notes'].replace('\n', '. ')))
+        metadata.summary = json_recording_details['metadata']['show_description']
         metadata.genres.clear()
         recording_type = json_recording_details['metadata']['recording_type']
         if recording_type:
