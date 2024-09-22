@@ -5,12 +5,14 @@ import sys                  # getdefaultencoding, getfilesystemencoding, platfor
 import os                   # path.abspath, join, dirname
 import re                   #
 import inspect              # getfile, currentframe
-import urllib2              #
+import urllib2
+import urllib
 from   lxml    import etree #
 from   io      import open  # open
 import hashlib
 from datetime import datetime
 import time
+import json
 
 ###Mini Functions ###
 def natural_sort_key     (s):  return [int(text) if text.isdigit() else text for text in re.split(re.compile('([0-9]+)'), str(s).lower())]  ### Avoid 1, 10, 2, 20... #Usage: list.sort(key=natural_sort_key), sorted(list, key=natural_sort_key)
@@ -43,11 +45,65 @@ def parse_iso8601(nft_date):
         return datetime.strptime(nft_date, '%Y-%m-%dT%H:%M:%S.%f')  # Parse the datetime string
     return None  # Return None if the format is unexpected
 
+def download_subtitles(recording_id, media):
+    subtitles_url = "https://encora.it/api/recording/{}/subtitles".format(recording_id)
+    headers = {
+        'Authorization': 'Bearer {}'.format(encora_api_key()),
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+    }
+
+    try:
+        request = urllib2.Request(subtitles_url, headers=headers)
+        response = urllib2.urlopen(request)
+        json_data = json.load(response)
+
+        if json_data and isinstance(json_data, list) and len(json_data) > 0:
+            subtitle_info = json_data[0]
+            subtitle_file_url = subtitle_info['url']
+            file_type = subtitle_info['file_type']
+            subtitle_file_path = os.path.join(GetMediaDir(media, True), "{}.{}".format(media.title, file_type))
+
+
+            # media does not contain the path of the files
+            Log.Info("Media attributes: {}".format(dir(media)))
+            log_info = [
+                "Media title: {}".format(media.title),
+                "Media ID: {}".format(media.id),
+                "Media GUID: {}".format(media.guid),
+                "Originally Available At: {}".format(media.originally_available_at),
+                "Added At: {}".format(media.added_at),
+                "Refreshed At: {}".format(media.refreshed_at),
+                "Parent Title: {}".format(media.parentTitle),
+                "Index: {}".format(media.index),
+            ]
+
+            for info in log_info:
+                Log.Info(info)
+
+
+            # Download the subtitle file
+            urllib.urlretrieve(subtitle_file_url, subtitle_file_path)
+            Log.Info("Downloaded subtitles to: {}".format(subtitle_file_path))
+
+            # Set subtitles in metadata (if applicable)
+            media.subtitles.clear()
+            subtitle = media.subtitles.new()
+            subtitle.language = subtitle_info['language']
+            subtitle.path = subtitle_file_path
+        else:
+            Log.Info("No subtitle file found for recording ID: {}".format(recording_id))
+
+    except Exception as e:
+        Log.Error("Failed to download subtitles for recording ID: {}: {}".format(recording_id, str(e)))
+
+
+    except Exception as e:
+        Log.Error("Failed to download subtitles for recording ID: {}: {}".format(recording_id, str(e)))
+
+
+
 # Used for the preference to define the format of Plex Titles
-def format_title(template, data):
-    # Log inputs
-    Log.Info(u'template: "{}"'.format(template))
-    
+def format_title(template, data):    
     date_info = data.get('date', {})
     full_date = ""
     
@@ -79,8 +135,6 @@ def month_name(month):
     ][month]
 
 def clean_html_description(html_description):
-    # log input
-    Log.Info(u'html_description: "{}"'.format(html_description))
     # Preserve line breaks
     text = re.sub(r'</p>', '\n', html_description)
     # Remove HTML tags
@@ -238,6 +292,9 @@ def Update(metadata, media, lang, force, movie):
     try:
         json_recording_details = json_load(ENCORA_API_RECORDING_INFO, recording_id)
         if json_recording_details:
+            #log "downloading subtitles"
+            Log(u'Attempting to download subtitles for recording ID: {}'.format(recording_id))
+            download_subtitles(recording_id, media)
             # Update metadata fields based on the Encora API response
             metadata.title = format_title(Prefs['title_format'], json_recording_details)
             metadata.original_title = json_recording_details['show']
@@ -299,7 +356,6 @@ def Update(metadata, media, lang, force, movie):
             Log(u'Updated metadata: title="{}", original_title="{}", originally_available_at="{}", studio="{}", director="{}", content_rating="{}", genres="{}", roles="{}"'.format(
                 metadata.title,  metadata.original_title, metadata.originally_available_at, metadata.studio, director.name, metadata.content_rating, list(metadata.genres), [(role.actor, role.role) for role in metadata.roles]
             ))
-
             return
     except Exception as e:
         Log(u'update() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
