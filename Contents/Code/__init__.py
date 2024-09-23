@@ -90,7 +90,11 @@ def download_subtitles(recording_id, media, movie):
             subtitle_file_path = os.path.join(dir, "{}.{}".format(filename_without_ext, file_type.lower()))
 
             # Download the subtitle file
-            urllib.urlretrieve(subtitle_file_url, subtitle_file_path)
+            request = urllib2.Request(subtitle_file_url, headers=headers)
+
+            # Open the URL and write the content to the file
+            with open(subtitle_file_path, 'wb') as f:
+                f.write(urllib2.urlopen(request).read())
             Log.Info("Downloaded subtitles to: {}".format(subtitle_file_path))
 
             # Attach downloaded subtitle to media metadata
