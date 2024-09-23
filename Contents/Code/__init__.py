@@ -45,7 +45,7 @@ def parse_iso8601(nft_date):
         return datetime.strptime(nft_date, '%Y-%m-%dT%H:%M:%S.%f')  # Parse the datetime string
     return None  # Return None if the format is unexpected
 
-def download_subtitles(recording_id, media):
+def download_subtitles(recording_id, media, movie):
     subtitles_url = "https://encora.it/api/recording/{}/subtitles".format(recording_id)
     headers = {
         'Authorization': 'Bearer {}'.format(encora_api_key()),
@@ -63,33 +63,51 @@ def download_subtitles(recording_id, media):
             file_type = subtitle_info['file_type']
             subtitle_file_path = os.path.join(GetMediaDir(media, True), "{}.{}".format(media.title, file_type))
 
+            #Log sub file path
+            Log.Info("Subtitle file path: {}".format(subtitle_file_path))
 
-            # media does not contain the path of the files
-            Log.Info("Media attributes: {}".format(dir(media)))
-            log_info = [
-                "Media title: {}".format(media.title),
-                "Media ID: {}".format(media.id),
-                "Media GUID: {}".format(media.guid),
-                "Originally Available At: {}".format(media.originally_available_at),
-                "Added At: {}".format(media.added_at),
-                "Refreshed At: {}".format(media.refreshed_at),
-                "Parent Title: {}".format(media.parentTitle),
-                "Index: {}".format(media.index),
-            ]
+            filename = media.items[0].parts[0].file if movie else media.filename or media.show
+            dir = GetMediaDir(media, movie)
+            
+            try:
+                filename = sanitize_path(filename)
+            except Exception as e:
+                Log('download_subtitles() - Exception1: filename: "{}", e: "{}"'.format(filename, e))
+            try:
+                filename = os.path.basename(filename)
+            except Exception as e:
+                Log('download_subtitles() - Exception2: filename: "{}", e: "{}"'.format(filename, e))
+            try:
+                filename = urllib2.unquote(filename)
+            except Exception as e:
+                Log('download_subtitles() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
+            
+            Log(u''.ljust(157, '='))
 
-            for info in log_info:
-                Log.Info(info)
-
+            # Replace the title after the last \ with filename and convert .ext to lowercase
+            # filename without ext
+            filename_without_ext = os.path.splitext(filename)[0]
+            subtitle_file_path = os.path.join(dir, "{}.{}".format(filename_without_ext, file_type.lower()))
 
             # Download the subtitle file
             urllib.urlretrieve(subtitle_file_url, subtitle_file_path)
             Log.Info("Downloaded subtitles to: {}".format(subtitle_file_path))
 
-            # Set subtitles in metadata (if applicable)
-            media.subtitles.clear()
-            subtitle = media.subtitles.new()
-            subtitle.language = subtitle_info['language']
-            subtitle.path = subtitle_file_path
+            # Attach downloaded subtitle to media metadata
+            mediaPart = media.items[0].parts[0]
+            content = open(subtitle_file_path, 'r').read()
+
+            pm = Proxy.Media(content, ext=file_type, forced="1" if subtitle_info.get('forced') else None)
+            new_key = "subzero_md" + ("_forced" if subtitle_info.get('forced') else "")
+            lang = Locale.Language.Match(subtitle_info.get('language'))
+
+            # Remove any legacy subtitles and add the new one
+            for key, proxy in getattr(mediaPart.subtitles[lang], "_proxies").iteritems():
+                if not proxy or not len(proxy) >= 5:
+                    Log.Debug("Can't parse metadata: %s" % repr(proxy))
+                    continue
+            Log.Debug("Adding metadata sub for %s: %s", lang, subtitle_file_path)
+            mediaPart.subtitles[lang][new_key] = pm
         else:
             Log.Info("No subtitle file found for recording ID: {}".format(recording_id))
 
@@ -145,8 +163,6 @@ def clean_html_description(html_description):
     text = text.replace('&amp;', '&')
     text = text.replace('&lt;', '<')
     text = text.replace('&gt;', '>')
-    # log output
-    Log.Info(u'text: "{}"'.format(text))
     return text
 
 ### Get media root folder ###
@@ -294,7 +310,7 @@ def Update(metadata, media, lang, force, movie):
         if json_recording_details:
             #log "downloading subtitles"
             Log(u'Attempting to download subtitles for recording ID: {}'.format(recording_id))
-            download_subtitles(recording_id, media)
+            download_subtitles(recording_id, media, movie)
             # Update metadata fields based on the Encora API response
             metadata.title = format_title(Prefs['title_format'], json_recording_details)
             metadata.original_title = json_recording_details['show']
@@ -350,12 +366,6 @@ def Update(metadata, media, lang, force, movie):
                     Log(u'director: {}'.format(json_recording_details['master']))
                 except Exception as e:
                     Log.Info(u'[!] add_master_as_director exception: {}'.format(e))
-            return
-
-            # Log the updated metadata
-            Log(u'Updated metadata: title="{}", original_title="{}", originally_available_at="{}", studio="{}", director="{}", content_rating="{}", genres="{}", roles="{}"'.format(
-                metadata.title,  metadata.original_title, metadata.originally_available_at, metadata.studio, director.name, metadata.content_rating, list(metadata.genres), [(role.actor, role.role) for role in metadata.roles]
-            ))
             return
     except Exception as e:
         Log(u'update() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
