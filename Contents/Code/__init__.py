@@ -232,7 +232,14 @@ def json_load(template, *args):
 
     return json_data
 
-
+def find_encora_id_file(directory):
+    pattern = re.compile(r'\.encora-(\d+)')
+    for filename in os.listdir(directory):
+        match = pattern.match(filename)
+        if match:
+            return match.group(1)
+    return None
+    
 def Start():
   #HTTP.CacheTime                  = CACHE_1DAY
   HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
@@ -268,13 +275,13 @@ def Search(results, media, lang, manual, movie):
         recording_id = recording_id_match.group(1)
         Log(u'search() - Found recording ID in folder name: {}'.format(recording_id))
     else:
-        # Fallback to checking for .encora_id file inside the folder
-        encora_id_path = os.path.join(dir, '.encora_id')
-        if os.path.exists(encora_id_path):
-            with open(encora_id_path, 'r') as f:
-                recording_id = f.read().strip()
-                Log(u'search() - Found recording ID in .encora_id file: {}'.format(recording_id))
+        # Fallback to checking for .encora_{id} file inside the folder
 
+        recording_id = find_encora_id_file(dir)
+        if recording_id:
+            Log(u'search() - Found recording ID in filename: {}'.format(recording_id))
+        else:
+            Log(u'search() - No recording ID found in filenames')
     if recording_id:
         try:
             json_recording_details = json_load(ENCORA_API_RECORDING_INFO, recording_id)
@@ -348,6 +355,14 @@ def Update(metadata, media, lang, force, movie):
             # Compare only when nft_date is present and properly parsed
             if nft_forever or (nft_date_parsed and nft_date_parsed < current_time):
                 metadata.content_rating = 'NFT'
+
+            # Create a cast array
+            cast_array = json_recording_details['cast']
+            show_id = json_recording_details['metadata']['show_id']
+
+            # Prepare media db api query
+            media_db_api_url = "https://website.com/api/media?show_id={}&performers=[{}]".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
+            Log(u'media_db_api_url: {}'.format(media_db_api_url))
 
             # Update genres based on recording type
             metadata.genres.clear()

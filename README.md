@@ -27,4 +27,4 @@ The agent is configured to handle the rate limit and continue processing entries
   ![Plex Library](src/plex-library.png)
 - In your Plex Settings, make sure you enable XBMCnfoMoviesImporter as a backup agent for Encora
   ![Agent Setting](src/plex-agent.png)
-- Your media items should have `e-{id}` in the name e.g. `Murder Ballad {e-1118317}` **or** have an `.encora_id` file inside the folder which contains the ID alone
+- Your media items should have `e-{id}` in the name e.g. `Murder Ballad {e-1118317}` **or** have an `.encora-{id}` file inside the folder e.g. `.encora-1118317`
