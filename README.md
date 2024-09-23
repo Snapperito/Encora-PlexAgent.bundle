@@ -25,5 +25,6 @@ The agent is configured to handle the rate limit and continue processing entries
 - Populate your API Key in the settings
 - Configure the naming of Plex items
   ![Plex Library](src/plex-library.png)
-- Finally, in your Plex Settings, make sure you enable XBMCnfoMoviesImporter as a backup agent for Encora
+- In your Plex Settings, make sure you enable XBMCnfoMoviesImporter as a backup agent for Encora
   ![Agent Setting](src/plex-agent.png)
+- Your media items should have `e-{id}` in the name e.g. `Murder Ballad {e-1118317}` **or** have an `.encora_id` file inside the folder which contains the ID alone

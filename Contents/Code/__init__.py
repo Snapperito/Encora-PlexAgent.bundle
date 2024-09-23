@@ -262,12 +262,20 @@ def Search(results, media, lang, manual, movie):
     
     # Extract recording ID from the folder name
     folder_name = os.path.basename(dir)
-    recording_id_match = re.search(r'e-(\d+)', folder_name)
-    
+    # Try to find the recording ID from folder name
+    recording_id_match = re.search(r'e-(\d+)', dir)
     if recording_id_match:
         recording_id = recording_id_match.group(1)
-        Log(u'search() - Found recording ID: {}'.format(recording_id))
-        
+        Log(u'search() - Found recording ID in folder name: {}'.format(recording_id))
+    else:
+        # Fallback to checking for .encora_id file inside the folder
+        encora_id_path = os.path.join(dir, '.encora_id')
+        if os.path.exists(encora_id_path):
+            with open(encora_id_path, 'r') as f:
+                recording_id = f.read().strip()
+                Log(u'search() - Found recording ID in .encora_id file: {}'.format(recording_id))
+
+    if recording_id:
         try:
             json_recording_details = json_load(ENCORA_API_RECORDING_INFO, recording_id)
             if json_recording_details:
