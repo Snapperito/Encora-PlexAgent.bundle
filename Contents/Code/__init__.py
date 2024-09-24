@@ -238,10 +238,18 @@ def json_load(template, *args):
 
 def find_encora_id_file(directory):
     pattern = re.compile(r'\.encora-(\d+)')
+    
     for filename in os.listdir(directory):
         match = pattern.match(filename)
         if match:
             return match.group(1)
+    
+    # If no match found, check for .encora-id file
+    encora_id_file = os.path.join(directory, '.encora-id')
+    if os.path.isfile(encora_id_file):
+        with open(encora_id_file, 'r') as file:
+            return file.read().strip()
+    
     return None
     
 def Start():
