@@ -514,7 +514,7 @@ def Update(metadata, media, lang, force, movie):
             nft_date_parsed = None
 
         # Get the current time in UTC (naive datetime)
-        current_time = datetime.utcnow()
+        current_time = datetime.now(datetime.timezone.utc)
 
         # Compare only when nft_date is present and properly parsed
         if nft_forever or (nft_date_parsed and nft_date_parsed < current_time):
@@ -546,7 +546,7 @@ def Update(metadata, media, lang, force, movie):
 
 ### Agent declaration ##################################################################################################################################################
 class EncoraAgent(Agent.Movies):
-  name, primary_provider, fallback_agent, contributes_to, accepts_from, languages = 'Encora', True, ['com.plexapp.agents.xbmcnfo'], None, ['com.plexapp.agents.localmedia', 'com.plexapp.agents.xbmcnfo'], [Locale.Language.NoLanguage]
+  name, primary_provider, fallback_agent, contributes_to, accepts_from, languages = 'Encora', True, ['com.plexapp.agents.xbmcnfo'], None, ['com.plexapp.agents.xbmcnfo'], [Locale.Language.NoLanguage]
   def search (self, results,  media, lang, manual):  Search (results,  media, lang, manual, True)
   def update (self, metadata, media, lang, force ):  Update (metadata, media, lang, force,  True)
 
