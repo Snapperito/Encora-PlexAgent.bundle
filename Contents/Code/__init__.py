@@ -384,14 +384,17 @@ def Update(metadata, media, lang, force, movie):
             if json_recording_details['metadata']['media_type']:
                 metadata.genres.add(json_recording_details['metadata']['media_type'])
 
+            def get_order(cast_member):
+                return cast_member['character'].get('order', 999) if cast_member['character'] else 999
+            sorted_cast = sorted(json_recording_details['cast'], key=get_order)
             metadata.roles.clear()
-            for cast_member in json_recording_details['cast']:
+            for cast_member in sorted_cast:
                 role = metadata.roles.new()
                 role.name = cast_member['performer']['name'] # Performer name = role.name
                 if cast_member['status']:
                     role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name'] # Character status + name = role.role
                 else:
-                    role.role = cast_member['character']['name'] # Character name = role.role
+                    role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble" # Character name = role.role
                 #role.photo = cast_member['performer']['url'] # this needs to query new headshot database
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
@@ -448,15 +451,17 @@ def Update(metadata, media, lang, force, movie):
         # Compare only when nft_date is present and properly parsed
         if nft_forever or (nft_date_parsed and nft_date_parsed < current_time):
             metadata.content_rating = 'NFT'
-        
+        def get_order(cast_member):
+            return cast_member['character'].get('order', 999) if cast_member['character'] else 999
+        sorted_cast = sorted(json_recording_details['cast'], key=get_order)
         metadata.roles.clear()
-        for cast_member in json_recording_details['cast']:
+        for cast_member in sorted_cast:
             role = metadata.roles.new()
             role.name = cast_member['performer']['name'] # Performer name = role.name
             if cast_member['status']:
                 role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name'] # Character status + name = role.role
             else:
-                role.role = cast_member['character']['name'] # Character name = role.role
+                role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble" # Character name = role.role
             #role.photo = cast_member['performer']['url'] # this needs to query new headshot database
             Log(u'Found Cast Member: actor: {}, role: {}'.format(role.name, role.role))
         if Prefs['add_master_as_director']:
