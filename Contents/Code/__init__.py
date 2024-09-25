@@ -59,71 +59,58 @@ def download_subtitles(recording_id, media, movie):
         json_data = json.load(response)
 
         if json_data and isinstance(json_data, list) and len(json_data) > 0:
-            subtitle_info = json_data[0]
-            subtitle_file_url = subtitle_info['url']
-            file_type = subtitle_info['file_type']
-            subtitle_file_path = os.path.join(GetMediaDir(media, True), "{}.{}".format(media.title, file_type))
-
-            #Log sub file path
-            Log.Info("Subtitle file path: {}".format(subtitle_file_path))
-
-            filename = media.items[0].parts[0].file if movie else media.filename or media.show
-            dir = GetMediaDir(media, movie)
-            
-            try:
-                filename = sanitize_path(filename)
-            except Exception as e:
-                Log('download_subtitles() - Exception1: filename: "{}", e: "{}"'.format(filename, e))
-            try:
-                filename = os.path.basename(filename)
-            except Exception as e:
-                Log('download_subtitles() - Exception2: filename: "{}", e: "{}"'.format(filename, e))
-            try:
-                filename = urllib2.unquote(filename)
-            except Exception as e:
-                Log('download_subtitles() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
-            
-            Log(u''.ljust(157, '='))
-
-            # Replace the title after the last \ with filename and convert .ext to lowercase
-            # filename without ext
-            filename_without_ext = os.path.splitext(filename)[0]
-            subtitle_file_path = os.path.join(dir, "{}.{}".format(filename_without_ext, file_type.lower()))
-
-            # Download the subtitle file
-            request = urllib2.Request(subtitle_file_url, headers=headers)
-
-            # Open the URL and write the content to the file
-            with open(subtitle_file_path, 'wb') as f:
-                f.write(urllib2.urlopen(request).read())
-            Log.Info("Downloaded subtitles to: {}".format(subtitle_file_path))
-
-            # Attach downloaded subtitle to media metadata
             mediaPart = media.items[0].parts[0]
-            content = open(subtitle_file_path, 'r').read()
 
-            pm = Proxy.Media(content, ext=file_type, forced="1" if subtitle_info.get('forced') else None)
-            new_key = "subzero_md" + ("_forced" if subtitle_info.get('forced') else "")
-            lang = Locale.Language.Match(subtitle_info.get('language'))
+            # Loop over all subtitle entries
+            for subtitle_info in json_data:
+                subtitle_file_url = subtitle_info['url']
+                file_type = subtitle_info['file_type']
+                language = subtitle_info['language']
+                forced = subtitle_info.get('forced')
 
-            # Remove any legacy subtitles and add the new one
-            for key, proxy in getattr(mediaPart.subtitles[lang], "_proxies").iteritems():
-                if not proxy or not len(proxy) >= 5:
-                    Log.Debug("Can't parse metadata: %s" % repr(proxy))
-                    continue
-            Log.Debug("Adding metadata sub for %s: %s", lang, subtitle_file_path)
-            mediaPart.subtitles[lang][new_key] = pm
+                filename = media.items[0].parts[0].file if movie else media.filename or media.show
+                dir = GetMediaDir(media, movie)
+
+                try:
+                    filename = sanitize_path(filename)
+                except Exception as e:
+                    Log('download_subtitles() - Exception1: filename: "{}", e: "{}"'.format(filename, e))
+                try:
+                    filename = os.path.basename(filename)
+                except Exception as e:
+                    Log('download_subtitles() - Exception2: filename: "{}", e: "{}"'.format(filename, e))
+                try:
+                    filename = urllib2.unquote(filename)
+                except Exception as e:
+                    Log('download_subtitles() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
+
+                filename_without_ext = os.path.splitext(filename)[0]
+                subtitle_file_path = os.path.join(dir, "{}_{}.{}".format(filename_without_ext, language, file_type.lower()))
+
+                # Download the subtitle file
+                subtitle_request = urllib2.Request(subtitle_file_url, headers=headers)
+
+                # Write the content to the file
+                with open(subtitle_file_path, 'wb') as f:
+                    f.write(urllib2.urlopen(subtitle_request).read())
+                Log.Info("Downloaded subtitles to: {}".format(subtitle_file_path))
+
+                # Attach downloaded subtitle to media metadata
+                with open(subtitle_file_path, 'r', encoding='utf-8', errors='replace') as f:
+                    content = f.read()
+
+                pm = Proxy.Media(content, ext=file_type, forced="1" if forced else None)
+                new_key = "subzero_md" + ("_forced" if forced else "")
+                lang = Locale.Language.Match(language)
+
+                # Remove any legacy subtitles for the same language and add the new one
+                mediaPart.subtitles[lang][new_key] = pm
+                Log.Debug("Added subtitle for language '{}': {}".format(language, subtitle_file_path))
         else:
             Log.Info("No subtitle file found for recording ID: {}".format(recording_id))
 
     except Exception as e:
         Log.Error("Failed to download subtitles for recording ID: {}: {}".format(recording_id, str(e)))
-
-
-    except Exception as e:
-        Log.Error("Failed to download subtitles for recording ID: {}: {}".format(recording_id, str(e)))
-
-
 
 # Used for the preference to define the format of Plex Titles
 def format_title(template, data):    
