@@ -4,7 +4,8 @@
 import sys                  # getdefaultencoding, getfilesystemencoding, platform, argv
 import os                   # path.abspath, join, dirname
 import re                   #
-import inspect              # getfile, currentframe
+import inspect
+import urllib.request              # getfile, currentframe
 import urllib2
 import urllib
 from   lxml    import etree #
@@ -375,6 +376,33 @@ def Update(metadata, media, lang, force, movie):
             # Prepare media db api query
             media_db_api_url = "https://website.com/api/media?show_id={}&performers=[{}]".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
             Log(u'media_db_api_url: {}'.format(media_db_api_url))
+            # TODO: Proper API stuff
+            fake_api_response = {
+                "posters": [
+                    "https://letsgotothemovies.co.uk/wp-content/uploads/2016/10/main_mob_zpsvi1tjzdz.png",
+                    "https://cdn.ticketsource.co.uk/images/promoter/banner/01876-1563276446352.jpg",
+                    "https://images.squarespace-cdn.com/content/v1/59c12ad059cc6865d1627037/1562607500988-H0KPPUK1U3EOOZZ031SF/MB+original+poster+.jpg",
+                    "https://musicalsites.nl/wp-content/uploads/2022/05/Murder-Ballad-scaled.jpg",
+                ],
+                "performers": [
+                    {
+                        "id": 26,
+                        "url": "https://media.themoviedb.org/t/p/w500/vkCXoRIkmaB29ztDPUxYPqVk1pw.jpg",
+                    },
+                    {
+                        "id": 5049,
+                        "url": "https://www.normanbowman.com/images/norman-bowman-actor-singer.jpg",
+                    },
+                    {
+                        "id": 559,
+                        "url": "https://images.squarespace-cdn.com/content/v1/5d58295a5940e50001d94854/1571507086913-RRU3DJCSABE8JF9MWO8R/image-asset.jpeg",
+                    },
+                    {
+                        "id": 5048,
+                        "url": "https://files.thehandbook.com/uploads/2017/04/victoria-hamilton-barritt-17th-annual-whatsonstage-awards-in-london-2-19-2017-1.jpg",
+                    },
+                ]
+            }
 
             # Update genres based on recording type
             metadata.genres.clear()
@@ -386,6 +414,19 @@ def Update(metadata, media, lang, force, movie):
 
             def get_order(cast_member):
                 return cast_member['character'].get('order', 999) if cast_member['character'] else 999
+            
+            # TODO: Proper API stuff
+            performer_url_map = {performer['id']: performer['url'] for performer in fake_api_response['performers']}
+
+            # set the posters from API
+            if 'posters' in fake_api_response:
+                for full_poster_url in fake_api_response['posters']:
+                    # download the poster freom the url 
+                    poster_file = urllib2.urlopen(full_poster_url)
+                    # add the poster to the metadata
+                    metadata.posters[full_poster_url] = Proxy.Preview(poster_file, sort_order=None)
+
+
             sorted_cast = sorted(json_recording_details['cast'], key=get_order)
             metadata.roles.clear()
             for cast_member in sorted_cast:
@@ -395,7 +436,12 @@ def Update(metadata, media, lang, force, movie):
                     role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name'] # Character status + name = role.role
                 else:
                     role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble" # Character name = role.role
-                #role.photo = cast_member['performer']['url'] # this needs to query new headshot database
+                    # Assign the performer's photo URL if it exists in the performer_url_map
+                performer_id = cast_member['performer']['id']
+                if performer_id in performer_url_map:
+                    role.photo = performer_url_map[performer_id]
+                else:
+                    role.photo = None  # or leave it unset if the URL is not available
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
                 try:
