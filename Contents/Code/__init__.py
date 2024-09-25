@@ -382,36 +382,15 @@ def Update(metadata, media, lang, force, movie):
             cast_array = json_recording_details['cast']
             show_id = json_recording_details['metadata']['show_id']
 
-            # Prepare media db api query
+            # Prepare media db api query 
+            # TODO: Fix url once API is ready
             media_db_api_url = "https://website.com/api/media?show_id={}&performers=[{}]".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
             Log(u'media_db_api_url: {}'.format(media_db_api_url))
-            # TODO: Proper API stuff
-            fake_api_response = {
-                "posters": [
-                    "https://i.ibb.co/Csp00TF/1.png",
-                    "https://i.ibb.co/KLpfz3w/2.jpg",
-                    "https://i.ibb.co/993NK4R/3.png",
-                    "https://i.ibb.co/jHQ8XLF/4.png",
-                ],
-                "performers": [
-                    {
-                        "id": 26,
-                        "url": "https://media.themoviedb.org/t/p/w500/vkCXoRIkmaB29ztDPUxYPqVk1pw.jpg",
-                    },
-                    {
-                        "id": 5049,
-                        "url": "https://www.normanbowman.com/images/norman-bowman-actor-singer.jpg",
-                    },
-                    {
-                        "id": 559,
-                        "url": "https://images.squarespace-cdn.com/content/v1/5d58295a5940e50001d94854/1571507086913-RRU3DJCSABE8JF9MWO8R/image-asset.jpeg",
-                    },
-                    {
-                        "id": 5048,
-                        "url": "https://files.thehandbook.com/uploads/2017/04/victoria-hamilton-barritt-17th-annual-whatsonstage-awards-in-london-2-19-2017-1.jpg",
-                    },
-                ]
-            }
+
+            # make request to mediadb for poster / headshots
+            request = urllib2.Request(media_db_api_url, headers={})
+            response = urllib2.urlopen(request)
+            api_response = json.load(response)
 
             # Update genres based on recording type
             metadata.genres.clear()
@@ -424,16 +403,15 @@ def Update(metadata, media, lang, force, movie):
             def get_order(cast_member):
                 return cast_member['character'].get('order', 999) if cast_member['character'] else 999
             
-            # TODO: Proper API stuff
-            performer_url_map = {performer['id']: performer['url'] for performer in fake_api_response['performers']}
+            performer_url_map = {performer['id']: performer['url'] for performer in api_response['performers']}
 
             for key in metadata.posters.keys():
                 del metadata.posters[key]
             
             # set the posters from API
             if metadata.title == "Murder Ballad":
-                if 'posters' in fake_api_response:
-                    for full_poster_url in fake_api_response['posters']:
+                if 'posters' in api_response:
+                    for full_poster_url in api_response['posters']:
                         metadata.posters[full_poster_url] = Proxy.Preview(HTTP.Request(full_poster_url).content)
 
             sorted_cast = sorted(json_recording_details['cast'], key=get_order)
