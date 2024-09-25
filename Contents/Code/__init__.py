@@ -444,13 +444,10 @@ def Update(metadata, media, lang, force, movie):
                 del metadata.posters[key]
             
             # set the posters from API
-            if 'posters' in fake_api_response:
-                for full_poster_url in fake_api_response['posters']:
-                    metadata.posters[full_poster_url] = Proxy.Preview(HTTP.Request(full_poster_url).content)
-                    # try:
-                    #     metadata.posters[poster] = Proxy.Preview(full_poster_url)
-                    # except:
-                    #     Log('Failed to retrieve poster image: {}'.format(full_poster_url))
+            if metadata.title == "Murder Ballad":
+                if 'posters' in fake_api_response:
+                    for full_poster_url in fake_api_response['posters']:
+                        metadata.posters[full_poster_url] = Proxy.Preview(HTTP.Request(full_poster_url).content)
 
             sorted_cast = sorted(json_recording_details['cast'], key=get_order)
             metadata.roles.clear()
