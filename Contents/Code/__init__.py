@@ -5,7 +5,6 @@ import sys                  # getdefaultencoding, getfilesystemencoding, platfor
 import os                   # path.abspath, join, dirname
 import re                   #
 import inspect
-import urllib.request              # getfile, currentframe
 import urllib2
 import urllib
 from   lxml    import etree #
@@ -14,6 +13,7 @@ import hashlib
 from datetime import datetime
 import time
 import json
+import requests
 
 ###Mini Functions ###
 def natural_sort_key     (s):  return [int(text) if text.isdigit() else text for text in re.split(re.compile('([0-9]+)'), str(s).lower())]  ### Avoid 1, 10, 2, 20... #Usage: list.sort(key=natural_sort_key), sorted(list, key=natural_sort_key)
@@ -206,6 +206,28 @@ def encora_api_key():
   # Fall back to Library preference
   return Prefs['encora_api_key']
 
+def make_request(url, headers={}):
+    # Initialize variables
+    response = None
+    str_error = None
+
+    sleep_time = 1
+    num_retries = 4
+    for x in range(0, num_retries):
+        Log('Requesting: {}'.format(url))
+        try:
+            response = requests.get(url, headers=headers, timeout=90, verify=False)
+        except Exception as str_error:
+            Log('Failed HTTP request: {} | {}'.format(x, url))
+            Log('{}'.format(str_error))
+
+        if str_error:
+            time.sleep(sleep_time)
+            sleep_time = sleep_time * x
+        else:
+            break
+
+    return response.content if response else response
 
 ###
 def json_load(template, *args):
@@ -379,10 +401,10 @@ def Update(metadata, media, lang, force, movie):
             # TODO: Proper API stuff
             fake_api_response = {
                 "posters": [
-                    "https://letsgotothemovies.co.uk/wp-content/uploads/2016/10/main_mob_zpsvi1tjzdz.png",
-                    "https://cdn.ticketsource.co.uk/images/promoter/banner/01876-1563276446352.jpg",
-                    "https://images.squarespace-cdn.com/content/v1/59c12ad059cc6865d1627037/1562607500988-H0KPPUK1U3EOOZZ031SF/MB+original+poster+.jpg",
-                    "https://musicalsites.nl/wp-content/uploads/2022/05/Murder-Ballad-scaled.jpg",
+                    "https://i.ibb.co/Csp00TF/1.png",
+                    "https://i.ibb.co/KLpfz3w/2.jpg",
+                    "https://i.ibb.co/993NK4R/3.png",
+                    "https://i.ibb.co/jHQ8XLF/4.png",
                 ],
                 "performers": [
                     {
@@ -418,14 +440,17 @@ def Update(metadata, media, lang, force, movie):
             # TODO: Proper API stuff
             performer_url_map = {performer['id']: performer['url'] for performer in fake_api_response['performers']}
 
+            for key in metadata.posters.keys():
+                del metadata.posters[key]
+            
             # set the posters from API
             if 'posters' in fake_api_response:
                 for full_poster_url in fake_api_response['posters']:
-                    # download the poster freom the url 
-                    poster_file = urllib2.urlopen(full_poster_url)
-                    # add the poster to the metadata
-                    metadata.posters[full_poster_url] = Proxy.Preview(poster_file, sort_order=None)
-
+                    metadata.posters[full_poster_url] = Proxy.Preview(HTTP.Request(full_poster_url).content)
+                    # try:
+                    #     metadata.posters[poster] = Proxy.Preview(full_poster_url)
+                    # except:
+                    #     Log('Failed to retrieve poster image: {}'.format(full_poster_url))
 
             sorted_cast = sorted(json_recording_details['cast'], key=get_order)
             metadata.roles.clear()
@@ -457,11 +482,11 @@ def Update(metadata, media, lang, force, movie):
     Log('=== End Of Agent Call, errors after that are Plex related ==='.ljust(157, '='))
 
     ### Movie - API call ################################################################################################################
-    Log(u'update() using api - guid: {}, dir: {}, metadata.id: {}'.format(guid, dir, metadata.id))
+    Log(u'update() using api - dir: {}, metadata.id: {}'.format(dir, metadata.id))
     try:
         json_recording_details = json_load(ENCORA_API_RECORDING_INFO, guid)
     except Exception as e:
-        Log(u'json_recording_details - Could not retrieve data from Encora API for: {}, Exception: {}'.format(guid, e))
+        Log(u'json_recording_details - Could not retrieve data from Encora API. Exception: {}'.format(e))
     else:
         Log('Movie mode - json_recording_details - Loaded recording details from: "{}"'.format(ENCORA_API_RECORDING_INFO.format(guid, 'personal_key')))
         date = Datetime.ParseDate(json_recording_details['date']['full_date'])
