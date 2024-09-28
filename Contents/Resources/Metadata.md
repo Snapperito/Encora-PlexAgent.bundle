@@ -1,4 +1,4 @@
-<sup> Source: [direct](https://github.com/ZeroQI/Hama.bundle/releases/download/v1.0/Metadata.md.txt) / [plex forums](https://github.com/ZeroQI/Hama.bundle/releases/download/v1.0/Metadata.md.txt)</sup>
+<sup> Source: [direct](https://github.com/ZeroQI/Hama.bundle/releases/download/v1.0/Metadata.md.txt) / [plex forums](https://forums.plex.tv/t/plugin-development-documentation/107751)</sup>
 
 ```
 TSEMAGT | Metadata Model Classes | Description - Source: http://dev.plexapp.com/docs/agents/models.html
