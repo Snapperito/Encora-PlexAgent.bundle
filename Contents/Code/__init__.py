@@ -36,7 +36,6 @@ def GetMediaDir (media, movie, file=False):
   else:
     for s in media.seasons if media else []: # TV_Show:
       for e in media.seasons[s].episodes:
-        Log.Info(media.seasons[s].episodes[e].items[0].parts[0].file)
         return media.seasons[s].episodes[e].items[0].parts[0].file if file else os.path.dirname(media.seasons[s].episodes[e].items[0].parts[0].file)
 
 # Function to parse ISO 8601 date string and handle 'Z' for UTC
@@ -74,15 +73,15 @@ def download_subtitles(recording_id, media, movie):
                 try:
                     filename = sanitize_path(filename)
                 except Exception as e:
-                    Log('download_subtitles() - Exception1: filename: "{}", e: "{}"'.format(filename, e))
+                    Log('[Encora] download_subtitles() - Exception1: filename: "{}", e: "{}"'.format(filename, e))
                 try:
                     filename = os.path.basename(filename)
                 except Exception as e:
-                    Log('download_subtitles() - Exception2: filename: "{}", e: "{}"'.format(filename, e))
+                    Log('[Encora] download_subtitles() - Exception2: filename: "{}", e: "{}"'.format(filename, e))
                 try:
                     filename = urllib2.unquote(filename)
                 except Exception as e:
-                    Log('download_subtitles() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
+                    Log('[Encora] download_subtitles() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
 
                 filename_without_ext = os.path.splitext(filename)[0]
                 subtitle_file_path = os.path.join(dir, "{}_{}.{}".format(filename_without_ext, language, file_type.lower()))
@@ -93,7 +92,7 @@ def download_subtitles(recording_id, media, movie):
                 # Write the content to the file
                 with open(subtitle_file_path, 'wb') as f:
                     f.write(urllib2.urlopen(subtitle_request).read())
-                Log.Info("Downloaded subtitles to: {}".format(subtitle_file_path))
+                Log.Info("[Encora] Downloaded subtitles to: {}".format(subtitle_file_path))
 
                 # Attach downloaded subtitle to media metadata
                 with open(subtitle_file_path, 'r', encoding='utf-8', errors='replace') as f:
@@ -105,12 +104,10 @@ def download_subtitles(recording_id, media, movie):
 
                 # Remove any legacy subtitles for the same language and add the new one
                 mediaPart.subtitles[lang][new_key] = pm
-                Log.Debug("Added subtitle for language '{}': {}".format(language, subtitle_file_path))
-        else:
-            Log.Info("No subtitle file found for recording ID: {}".format(recording_id))
+                Log.Debug("[Encora] Added subtitle for language '{}': {}".format(language, subtitle_file_path))
 
     except Exception as e:
-        Log.Error("Failed to download subtitles for recording ID: {}: {}".format(recording_id, str(e)))
+        Log.Error("[Encora] Failed to download subtitles for recording ID: {}: {}".format(recording_id, str(e)))
 
 # Used for the preference to define the format of Plex Titles
 def format_title(template, data):    
@@ -133,8 +130,6 @@ def format_title(template, data):
     title = title.replace('{tour}', data.get('tour', ''))
     title = title.replace('{date}', full_date)
     title = title.replace('{master}', data.get('master', ''))
-
-    Log.Info(u'output title: "{}"'.format(title))
     return title
 
 def month_name(month):
@@ -166,15 +161,15 @@ def GetLibraryRootPath(dir):
       path    = os.path.relpath(dir, root)
       break
   else:  #401 no right to list libraries (windows)
-    Log.Info(u'[!] Library access denied')
+    Log.Info(u'[Encora]  Library access denied')
     filename = os.path.join(CachePath, '_Logs', '_root_.scanner.log')
     if os.path.isfile(filename):
-      Log.Info(u'[!] ASS root scanner file present: "{}"'.format(filename))
+      Log.Info(u'[Encora]  ASS root scanner file present: "{}"'.format(filename))
       line = Core.storage.load(filename)  #with open(filename, 'rb') as file:  line=file.read()
       for root in [os.sep.join(dir.split(os.sep)[0:x+2]) for x in range(dir.count(os.sep)-1, -1, -1)]:
         if "root: '{}'".format(root) in line:  path = os.path.relpath(dir, root).rstrip('.');  break  #Log.Info(u'[!] root not found: "{}"'.format(root))
       else: path, root = '_unknown_folder', ''
-    else:  Log.Info(u'[!] ASS root scanner file missing: "{}"'.format(filename))
+    else:  Log.Info(u'[Encora]  ASS root scanner file missing: "{}"'.format(filename))
   return library, root, path
 
 
@@ -186,7 +181,7 @@ def encora_api_key():
     if value:
       value = value.strip()
     if value:
-      Log.Debug(u"Loaded token from encora-token.txt file")
+      Log.Debug(u"[Encora] Loaded token from encora-token.txt file")
 
       return value
 
@@ -201,12 +196,12 @@ def make_request(url, headers={}):
     sleep_time = 1
     num_retries = 4
     for x in range(0, num_retries):
-        Log('Requesting: {}'.format(url))
+        Log('[Encora] Requesting: {}'.format(url))
         try:
             response = requests.get(url, headers=headers, timeout=90, verify=False)
         except Exception as str_error:
-            Log('Failed HTTP request: {} | {}'.format(x, url))
-            Log('{}'.format(str_error))
+            Log('[Encora] Failed HTTP request: {} | {}'.format(x, url))
+            Log('[Encora] {}'.format(str_error))
 
         if str_error:
             time.sleep(sleep_time)
@@ -276,18 +271,18 @@ def Search(results, media, lang, manual, movie):
     try:
         filename = sanitize_path(filename)
     except Exception as e:
-        Log('search() - Exception1: filename: "{}", e: "{}"'.format(filename, e))
+        Log('[Encora] search() - Exception1: filename: "{}", e: "{}"'.format(filename, e))
     try:
         filename = os.path.basename(filename)
     except Exception as e:
-        Log('search() - Exception2: filename: "{}", e: "{}"'.format(filename, e))
+        Log('[Encora] search() - Exception2: filename: "{}", e: "{}"'.format(filename, e))
     try:
         filename = urllib2.unquote(filename)
     except Exception as e:
-        Log('search() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
+        Log('[Encora] search() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
     
     Log(u''.ljust(157, '='))
-    Log(u"Search() - dir: {}, filename: {}, displayname: {}".format(dir, filename, displayname))
+    Log(u"[Encora] Search() - dir: {}, filename: {}, displayname: {}".format(dir, filename, displayname))
     
     # Extract recording ID from the folder name
     folder_name = os.path.basename(dir)
@@ -295,15 +290,15 @@ def Search(results, media, lang, manual, movie):
     recording_id_match = re.search(r'e-(\d+)', dir)
     if recording_id_match:
         recording_id = recording_id_match.group(1)
-        Log(u'search() - Found recording ID in folder name: {}'.format(recording_id))
+        Log(u'[Encora] search() - Found recording ID in folder name: {}'.format(recording_id))
     else:
         # Fallback to checking for .encora_{id} file inside the folder
 
         recording_id = find_encora_id_file(dir)
         if recording_id:
-            Log(u'search() - Found recording ID in filename: {}'.format(recording_id))
+            Log(u'[Encora] search() - Found recording ID in filename: {}'.format(recording_id))
         else:
-            Log(u'search() - No recording ID found in filenames')
+            Log(u'[Encora] search() - No recording ID found in filenames')
     if recording_id:
         try:
             json_recording_details = json_load(ENCORA_API_RECORDING_INFO, recording_id)
@@ -319,12 +314,12 @@ def Search(results, media, lang, manual, movie):
                 Log(u''.ljust(157, '='))
                 return
         except Exception as e:
-            Log(u'search() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
+            Log(u'[Encora] search() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
     
     # If no recording ID is found, log and return a default result
-    Log(u'search() - No recording ID found in folder name: "{}"'.format(folder_name))
+    Log(u'[Encora] search() - No recording ID found in folder name: "{}"'.format(folder_name))
     library, root, path = GetLibraryRootPath(dir)
-    Log(u'Putting folder name "{}" as guid since no assigned recording ID was found'.format(path.split(os.sep)[-1]))
+    Log(u'[Encora] Putting folder name "{}" as guid since no assigned recording ID was found'.format(path.split(os.sep)[-1]))
     results.Append(MetadataSearchResult(
         id='encora|{}|{}'.format(path.split(os.sep)[-2] if os.sep in path else '', dir),
         name=os.path.basename(filename),
@@ -346,7 +341,7 @@ def Update(metadata, media, lang, force, movie):
         json_recording_details = json_load(ENCORA_API_RECORDING_INFO, recording_id)
         if json_recording_details:
             #log "downloading subtitles"
-            Log(u'Attempting to download subtitles for recording ID: {}'.format(recording_id))
+            Log(u'[Encora] Attempting to download subtitles for recording ID: {}'.format(recording_id))
             download_subtitles(recording_id, media, movie)
             # Update metadata fields based on the Encora API response
             metadata.title = format_title(Prefs['title_format'], json_recording_details)
@@ -385,7 +380,6 @@ def Update(metadata, media, lang, force, movie):
             # Prepare media db api query 
             # TODO: Fix url once API is ready
             media_db_api_url = "https://website.com/api/media?show_id={}&performers=[{}]".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
-            Log(u'media_db_api_url: {}'.format(media_db_api_url))
 
             # make request to mediadb for poster / headshots
             request = urllib2.Request(media_db_api_url, headers={})
@@ -434,25 +428,23 @@ def Update(metadata, media, lang, force, movie):
                 try:
                     meta_director = metadata.directors.new()
                     meta_director.name = json_recording_details['master']
-                    Log(u'director: {}'.format(json_recording_details['master']))
                 except Exception as e:
-                    Log.Info(u'[!] add_master_as_director exception: {}'.format(e))
+                    Log.Info(u'[Encora]  add_master_as_director exception: {}'.format(e))
             return
     except Exception as e:
-        Log(u'update() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
+        Log(u'[Encora] update() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
 
     Log('=== End Of Agent Call, errors after that are Plex related ==='.ljust(157, '='))
 
     ### Movie - API call ################################################################################################################
-    Log(u'update() using api - dir: {}, metadata.id: {}'.format(dir, metadata.id))
+    Log(u'[Encora] update() using api - dir: {}, metadata.id: {}'.format(dir, metadata.id))
     try:
         json_recording_details = json_load(ENCORA_API_RECORDING_INFO, guid)
     except Exception as e:
-        Log(u'json_recording_details - Could not retrieve data from Encora API. Exception: {}'.format(e))
+        Log(u'[Encora] json_recording_details - Could not retrieve data from Encora API. Exception: {}'.format(e))
     else:
-        Log('Movie mode - json_recording_details - Loaded recording details from: "{}"'.format(ENCORA_API_RECORDING_INFO.format(guid, 'personal_key')))
+        Log('[Encora] Movie mode - json_recording_details - Loaded recording details from: "{}"'.format(ENCORA_API_RECORDING_INFO.format(guid, 'personal_key')))
         date = Datetime.ParseDate(json_recording_details['date']['full_date'])
-        Log('date:  "{}"'.format(date))
         metadata.originally_available_at = date.date()
         format_title(Prefs['title_format'], json_recording_details)
         show_description_html = json_recording_details.get('metadata', {}).get('show_description', 'Not provided. Edit the show on Encora to populate this!')
@@ -464,9 +456,8 @@ def Update(metadata, media, lang, force, movie):
             metadata.genres.add(recording_type)
         if json_recording_details['metadata']['media_type']:
             metadata.genres.add(json_recording_details['metadata']['media_type'])
-        Log(u'genres: {}'.format([x for x in metadata.genres]))
         metadata.year = date.year
-        Log(u'movie year: {}'.format(date.year))
+        Log(u'[Encora] year: {}'.format(date.year))
         
         # Set content rating based on NFT status
         nft_date = json_recording_details['nft']['nft_date']
@@ -496,15 +487,13 @@ def Update(metadata, media, lang, force, movie):
             else:
                 role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble" # Character name = role.role
             #role.photo = cast_member['performer']['url'] # this needs to query new headshot database
-            Log(u'Found Cast Member: actor: {}, role: {}'.format(role.name, role.role))
         if Prefs['add_master_as_director']:
             metadata.directors.clear()
             try:
                 meta_director = metadata.directors.new()
                 meta_director.name = json_recording_details['master']
-                Log(u'director: {}'.format(json_recording_details['master']))
             except Exception as e:
-                Log.Info(u'[!] add_master_as_director exception: {}'.format(e))
+                Log.Info(u'[Encora] add_master_as_director exception: {}'.format(e))
         return
     
     Log('=== End Of Agent Call, errors after that are Plex related ==='.ljust(157, '='))
