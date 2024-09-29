@@ -49,7 +49,7 @@ def download_subtitles(recording_id, media, movie):
     subtitles_url = "https://encora.it/api/recording/{}/subtitles".format(recording_id)
     headers = {
         'Authorization': 'Bearer {}'.format(encora_api_key()),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 PlexAgent/537.36'
     }
 
     try:
@@ -259,7 +259,7 @@ def find_encora_id_file(directory):
     
 def Start():
   #HTTP.CacheTime                  = CACHE_1DAY
-  HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+  HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 PlexAgent/537.36'
   HTTP.Headers['Accept-Language'] = 'en-us'
 
 ### Assign unique ID ###
