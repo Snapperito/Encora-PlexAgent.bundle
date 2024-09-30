@@ -417,6 +417,14 @@ def Update(metadata, media, lang, force, movie):
                         "id": 5048,
                         "url": "https://files.thehandbook.com/uploads/2017/04/victoria-hamilton-barritt-17th-annual-whatsonstage-awards-in-london-2-19-2017-1.jpg",
                     },
+                    {
+                        "id": 14806,
+                        "url": "https://media.themoviedb.org/t/p/w500/Ll3cAE9RIsSX4cvTi5K1KNQizI.jpg",
+                    },
+                    {
+                        "id": 5940,
+                        "url": "https://images.squarespace-cdn.com/content/v1/5b64256a3917eebd4302dd0b/1717682097857-J3ZG739DFXE4TD1RQRE5/EMILYBENJAMIN-5.jpg",
+                    },
                 ]
             }
 
