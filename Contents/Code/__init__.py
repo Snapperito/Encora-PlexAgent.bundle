@@ -49,7 +49,7 @@ def download_subtitles(recording_id, media, movie):
     subtitles_url = "https://encora.it/api/recording/{}/subtitles".format(recording_id)
     headers = {
         'Authorization': 'Bearer {}'.format(encora_api_key()),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 PlexAgent/537.36'
+        'User-Agent': 'PlexAgent/0.9'
     }
 
     try:
@@ -259,7 +259,7 @@ def find_encora_id_file(directory):
     
 def Start():
   #HTTP.CacheTime                  = CACHE_1DAY
-  HTTP.Headers['User-Agent'     ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 PlexAgent/537.36'
+  HTTP.Headers['User-Agent'     ] = 'PlexAgent/0.9'
   HTTP.Headers['Accept-Language'] = 'en-us'
 
 ### Assign unique ID ###
@@ -354,7 +354,13 @@ def Update(metadata, media, lang, force, movie):
             show_description_html = json_recording_details.get('metadata', {}).get('show_description', 'Not provided. Edit the show on Encora to populate this!')
             show_description = clean_html_description(show_description_html)
             metadata.summary = show_description
-
+            #log updated metadata
+            Log(u'[Encora] Updated metadata for recording ID: {}'.format(recording_id))
+            Log(u'[Encora] title: {}'.format(metadata.title))
+            Log(u'[Encora] original_title: {}'.format(metadata.original_title))
+            Log(u'[Encora] originally_available_at: {}'.format(metadata.originally_available_at))
+            Log(u'[Encora] studio: {}'.format(metadata.studio))
+            Log(u'[Encora] summary: {}'.format(metadata.summary))
 
             # Set content rating based on NFT status
             nft_date = json_recording_details['nft']['nft_date']
@@ -377,14 +383,42 @@ def Update(metadata, media, lang, force, movie):
             cast_array = json_recording_details['cast']
             show_id = json_recording_details['metadata']['show_id']
 
-            # Prepare media db api query 
-            # TODO: Fix url once API is ready
-            media_db_api_url = "https://website.com/api/media?show_id={}&performers=[{}]".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
+            ## Prepare media db api query 
+            ## TODO: Fix url once API is ready
+            # media_db_api_url = "https://website.com/api/media?show_id={}&performers=[{}]".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
 
-            # make request to mediadb for poster / headshots
-            request = urllib2.Request(media_db_api_url, headers={})
-            response = urllib2.urlopen(request)
-            api_response = json.load(response)
+            ## make request to mediadb for poster / headshots
+            # request = urllib2.Request(media_db_api_url, headers={})
+            # response = urllib2.urlopen(request)
+            # api_response = json.load(response)
+
+            ## TODO: Remove this and uncomment above once ready
+            api_response = {
+                "posters": [
+                    "https://i.ibb.co/Csp00TF/1.png",
+                    "https://i.ibb.co/KLpfz3w/2.jpg",
+                    "https://i.ibb.co/993NK4R/3.png",
+                    "https://i.ibb.co/jHQ8XLF/4.png",
+                ],
+                "performers": [
+                    {
+                        "id": 26,
+                        "url": "https://media.themoviedb.org/t/p/w500/vkCXoRIkmaB29ztDPUxYPqVk1pw.jpg",
+                    },
+                    {
+                        "id": 5049,
+                        "url": "https://www.normanbowman.com/images/norman-bowman-actor-singer.jpg",
+                    },
+                    {
+                        "id": 559,
+                        "url": "https://images.squarespace-cdn.com/content/v1/5d58295a5940e50001d94854/1571507086913-RRU3DJCSABE8JF9MWO8R/image-asset.jpeg",
+                    },
+                    {
+                        "id": 5048,
+                        "url": "https://files.thehandbook.com/uploads/2017/04/victoria-hamilton-barritt-17th-annual-whatsonstage-awards-in-london-2-19-2017-1.jpg",
+                    },
+                ]
+            }
 
             # Update genres based on recording type
             metadata.genres.clear()
@@ -393,6 +427,7 @@ def Update(metadata, media, lang, force, movie):
                 metadata.genres.add(recording_type)
             if json_recording_details['metadata']['media_type']:
                 metadata.genres.add(json_recording_details['metadata']['media_type'])
+                Log(u'[Encora] added genre {}'.format(json_recording_details['metadata']['media_type']))
 
             def get_order(cast_member):
                 return cast_member['character'].get('order', 999) if cast_member['character'] else 999
@@ -423,11 +458,13 @@ def Update(metadata, media, lang, force, movie):
                     role.photo = performer_url_map[performer_id]
                 else:
                     role.photo = None  # or leave it unset if the URL is not available
+                Log(u'[Encora] added role: {} as {}'.format(role.name, role.role))
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
                 try:
                     meta_director = metadata.directors.new()
                     meta_director.name = json_recording_details['master']
+                    Log(u'[Encora] add_master_as_director: {}'.format(json_recording_details['master']))
                 except Exception as e:
                     Log.Info(u'[Encora]  add_master_as_director exception: {}'.format(e))
             return
