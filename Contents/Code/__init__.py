@@ -130,6 +130,12 @@ def format_title(template, data):
     title = title.replace('{tour}', data.get('tour', ''))
     title = title.replace('{date}', full_date)
     title = title.replace('{master}', data.get('master', ''))
+    title = title.replacE(' - Part One', '')
+    title = title.replacE(' - Part 1', '')
+    title = title.replacE(' - Part I', '')
+    title = title.replacE(' - Part Two', '')
+    title = title.replacE(' - Part 2', '')
+    title = title.replacE(' - Part II', '')
     return title
 
 def month_name(month):
@@ -465,7 +471,7 @@ def Update(metadata, media, lang, force, movie):
                 if performer_id in performer_url_map:
                     role.photo = performer_url_map[performer_id]
                 else:
-                    role.photo = None  # or leave it unset if the URL is not available
+                    role.photo = "https://i.imgur.com/KOwWMsQ.png"  # or leave it unset if the URL is not available
                 Log(u'[Encora] added role: {} as {}'.format(role.name, role.role))
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
