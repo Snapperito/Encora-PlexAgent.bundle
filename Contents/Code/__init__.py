@@ -130,12 +130,12 @@ def format_title(template, data):
     title = title.replace('{tour}', data.get('tour', ''))
     title = title.replace('{date}', full_date)
     title = title.replace('{master}', data.get('master', ''))
-    title = title.replacE(' - Part One', '')
-    title = title.replacE(' - Part 1', '')
-    title = title.replacE(' - Part I', '')
-    title = title.replacE(' - Part Two', '')
-    title = title.replacE(' - Part 2', '')
-    title = title.replacE(' - Part II', '')
+    title = title.replace(' - Part One', '')
+    title = title.replace(' - Part 1', '')
+    title = title.replace(' - Part I', '')
+    title = title.replace(' - Part Two', '')
+    title = title.replace(' - Part 2', '')
+    title = title.replace(' - Part II', '')
     return title
 
 def month_name(month):
