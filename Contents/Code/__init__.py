@@ -382,7 +382,9 @@ def Update(metadata, media, lang, force, movie):
             current_time = datetime.utcnow()
 
             # Compare only when nft_date is present and properly parsed
-            if nft_forever or (nft_date_parsed and nft_date_parsed < current_time):
+            if nft_forever or (nft_date_parsed and nft_date_parsed > current_time):
+                # Is this currently NFT
+                Log(u'[Encora] This recording is NFT')
                 metadata.content_rating = 'NFT'
 
             # Create a cast array
