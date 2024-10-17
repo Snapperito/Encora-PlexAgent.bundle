@@ -373,19 +373,16 @@ def Update(metadata, media, lang, force, movie):
             nft_forever = json_recording_details['nft']['nft_forever']
 
             # Parse the nft_date in ISO 8601 format
-            if nft_date:
-                nft_date_parsed = parse_iso8601(nft_date)
-            else:
-                nft_date_parsed = None
+            nft_date_parsed = parse_iso8601(nft_date) if nft_date else None
 
             # Get the current time in UTC (naive datetime)
             current_time = datetime.utcnow()
 
             # Compare only when nft_date is present and properly parsed
             if nft_forever or (nft_date_parsed and nft_date_parsed > current_time):
-                # Is this currently NFT
-                Log(u'[Encora] This recording is NFT')
                 metadata.content_rating = 'NFT'
+            else:
+                metadata.content_rating = ' '
 
             # Create a cast array
             cast_array = json_recording_details['cast']
@@ -517,17 +514,17 @@ def Update(metadata, media, lang, force, movie):
         nft_forever = json_recording_details['nft']['nft_forever']
 
         # Parse the nft_date in ISO 8601 format
-        if nft_date:
-            nft_date_parsed = parse_iso8601(nft_date)
-        else:
-            nft_date_parsed = None
+        nft_date_parsed = parse_iso8601(nft_date) if nft_date else None
 
         # Get the current time in UTC (naive datetime)
-        current_time = datetime.now(datetime.timezone.utc)
+        current_time = datetime.utcnow()
 
         # Compare only when nft_date is present and properly parsed
-        if nft_forever or (nft_date_parsed and nft_date_parsed < current_time):
+        if nft_forever or (nft_date_parsed and nft_date_parsed > current_time):
             metadata.content_rating = 'NFT'
+        else:
+            metadata.content_rating = ' '
+
         def get_order(cast_member):
             return cast_member['character'].get('order', 999) if cast_member['character'] else 999
         sorted_cast = sorted(json_recording_details['cast'], key=get_order)
