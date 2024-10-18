@@ -470,7 +470,7 @@ def Update(metadata, media, lang, force, movie):
                 if performer_id in performer_url_map:
                     role.photo = performer_url_map[performer_id]
                 else:
-                    role.photo = "https://i.imgur.com/KOwWMsQ.png"  # or leave it unset if the URL is not available
+                    role.photo = "https://i.imgur.com/cXqYZEu.png"  # or leave it unset if the URL is not available
                 Log(u'[Encora] added role: {} as {}'.format(role.name, role.role))
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
