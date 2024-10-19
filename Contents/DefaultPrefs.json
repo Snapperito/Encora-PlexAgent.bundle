@@ -1,7 +1,13 @@
 [
   {
     "id": "encora_api_key",
-    "label": "Encora API Key (put your own key)",
+    "label": "Encora.it API Key (put your own key)",
+    "type": "text",
+    "default": ""
+  },
+  {
+    "id": "stagemedia_api_key",
+    "label": "StageMedia.me API Key (put your own key)",
     "type": "text",
     "default": ""
   },

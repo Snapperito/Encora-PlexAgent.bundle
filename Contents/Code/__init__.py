@@ -194,6 +194,21 @@ def encora_api_key():
   # Fall back to Library preference
   return Prefs['encora_api_key']
 
+#> called when looking for stagemedia API Key
+def stagemedia_api_key():
+  path = os.path.join(PluginDir, "stagemedia-key.txt")
+  if os.path.isfile(path):
+    value = Data.Load(path)
+    if value:
+      value = value.strip()
+    if value:
+      Log.Debug(u"[Encora] Loaded token from stagemedia-token.txt file")
+
+      return value
+
+  # Fall back to Library preference
+  return Prefs['stagemedia_api_key']
+
 def make_request(url, headers={}):
     # Initialize variables
     response = None
@@ -390,48 +405,17 @@ def Update(metadata, media, lang, force, movie):
 
             ## Prepare media db api query 
             ## TODO: Fix url once API is ready
-            # media_db_api_url = "https://website.com/api/media?show_id={}&performers=[{}]".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
-
+            media_db_api_url = "https://beta.stagemedia.me/api/images?show_id={}&actor_ids={}".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
+            Log(u'[Encora] Media DB API URL: {}'.format(media_db_api_url))
             ## make request to mediadb for poster / headshots
-            # request = urllib2.Request(media_db_api_url, headers={})
-            # response = urllib2.urlopen(request)
-            # api_response = json.load(response)
-
-            ## TODO: Remove this and uncomment above once ready
-            api_response = {
-                "posters": [
-                    "https://i.ibb.co/Csp00TF/1.png",
-                    "https://i.ibb.co/KLpfz3w/2.jpg",
-                    "https://i.ibb.co/993NK4R/3.png",
-                    "https://i.ibb.co/jHQ8XLF/4.png",
-                ],
-                "performers": [
-                    {
-                        "id": 26,
-                        "url": "https://media.themoviedb.org/t/p/w500/vkCXoRIkmaB29ztDPUxYPqVk1pw.jpg",
-                    },
-                    {
-                        "id": 5049,
-                        "url": "https://www.normanbowman.com/images/norman-bowman-actor-singer.jpg",
-                    },
-                    {
-                        "id": 559,
-                        "url": "https://images.squarespace-cdn.com/content/v1/5d58295a5940e50001d94854/1571507086913-RRU3DJCSABE8JF9MWO8R/image-asset.jpeg",
-                    },
-                    {
-                        "id": 5048,
-                        "url": "https://files.thehandbook.com/uploads/2017/04/victoria-hamilton-barritt-17th-annual-whatsonstage-awards-in-london-2-19-2017-1.jpg",
-                    },
-                    {
-                        "id": 14806,
-                        "url": "https://media.themoviedb.org/t/p/w500/Ll3cAE9RIsSX4cvTi5K1KNQizI.jpg",
-                    },
-                    {
-                        "id": 5940,
-                        "url": "https://images.squarespace-cdn.com/content/v1/5b64256a3917eebd4302dd0b/1717682097857-J3ZG739DFXE4TD1RQRE5/EMILYBENJAMIN-5.jpg",
-                    },
-                ]
+            headers = {
+                #'Authorization': 'Bearer {}'.format(stagemedia_api_key()),
+                'User-Agent': 'PlexAgent/0.9'
             }
+            request = urllib2.Request(media_db_api_url, headers=headers)
+            response = urllib2.urlopen(request)
+            api_response = json.load(response)
+            Log('[Encora] Media DB API response: {}'.format(api_response))
 
             # Update genres based on recording type
             metadata.genres.clear()
@@ -451,27 +435,34 @@ def Update(metadata, media, lang, force, movie):
                 del metadata.posters[key]
             
             # set the posters from API
-            if metadata.title == "Murder Ballad":
-                if 'posters' in api_response:
-                    for full_poster_url in api_response['posters']:
-                        metadata.posters[full_poster_url] = Proxy.Preview(HTTP.Request(full_poster_url).content)
+            if 'posters' in api_response:
+                for full_poster_url in api_response['posters']:
+                    # log each URL
+                    Log(u'[Encora] Full Poster URL: {}'.format(full_poster_url))
+                    metadata.posters[full_poster_url] = Proxy.Preview(HTTP.Request(full_poster_url).content)
 
             sorted_cast = sorted(json_recording_details['cast'], key=get_order)
             metadata.roles.clear()
             for cast_member in sorted_cast:
                 role = metadata.roles.new()
-                role.name = cast_member['performer']['name'] # Performer name = role.name
+                role.name = cast_member['performer']['name']  # Performer name = role.name
                 if cast_member['status']:
-                    role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name'] # Character status + name = role.role
+                    role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name']  # Character status + name = role.role
                 else:
-                    role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble" # Character name = role.role
-                    # Assign the performer's photo URL if it exists in the performer_url_map
+                    role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble"  # Character name = role.role
+                
+                # Assign the performer's photo URL if it exists or use the Imgur link if URL is null
                 performer_id = cast_member['performer']['id']
+                performer_url = cast_member['performer']['url']
+                
                 if performer_id in performer_url_map:
-                    role.photo = performer_url_map[performer_id]
+                    if performer_url_map[performer_id] != None:
+                        role.photo = performer_url_map[performer_id]
+                    else:
+                        role.photo = "https://i.imgur.com/cXqYZEu.png"
                 else:
-                    role.photo = "https://i.imgur.com/cXqYZEu.png"  # or leave it unset if the URL is not available
-                Log(u'[Encora] added role: {} as {}'.format(role.name, role.role))
+                    role.photo = performer_url
+
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
                 try:
