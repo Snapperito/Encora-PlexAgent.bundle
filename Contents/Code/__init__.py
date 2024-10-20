@@ -118,12 +118,13 @@ def format_title(template, data):
         if date_info.get('month_known') is False:
             full_date = date_info.get('full_date')[:4]  # Return YYYY
         else:
-            full_date = "{}, {}".format(month_name(date_info.get('month', 1)), date_info.get('full_date')[:4])  # Return Month, YYYY
+            month = int(date_info.get('full_date')[5:7])
+            full_date = "{}, {}".format(month_name(month), date_info.get('full_date')[:4])  # Return Month, YYYY
     else:
         full_date = date_info.get('full_date', '').lower()
-        date_variant = date_info.get('date_variant')
-        if date_variant:
-            full_date += " ({})".format(date_variant)
+    date_variant = date_info.get('date_variant')
+    if date_variant:
+        full_date += " ({})".format(date_variant)
 
     title = template
     title = title.replace('{show}', data.get('show', ''))
