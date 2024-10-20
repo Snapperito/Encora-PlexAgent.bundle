@@ -5,7 +5,7 @@
 This agent will scrape recording data from Encora, including downloading subtitles.
 It will also fallback to using [XBMCnfoMoviesImporter](https://github.com/Bubba8291/XBMCnfoMoviesImporter.bundle/archive/master.zip) if no encora ID is found, so that NFO files (created with [NFOBuilder](https://github.com/pekempy/NFOBuilder)) can be used to set the data.
 
-<sup>Thanks to [Bubba8291](https://github.com/Bubba8291) for working on the [Headshot Database]() used for the agent.</sup>
+<sup>Thanks to [Bubba8291](https://github.com/Bubba8291) for working on the [Headshot Database](https://stagemedia.me) used for the agent.</sup>
 
 _Please note: The Encora API is rate limited to 30 requests per minute by default. This means that scanning your full library make take time if you have a large amount of recordings in Plex.
 The agent is configured to handle the rate limit and continue processing entries once the limit resets._
@@ -43,7 +43,7 @@ The agent is configured to handle the rate limit and continue processing entries
 
 ### Fixing missing posters / headshots
 
-If posters or headshots are missing from your Plex after matching on Encora, then you will need to contribute to [the database]().
+If posters or headshots are missing from your Plex after matching on Encora, then you will need to contribute to [the database](https://stagemedia.me).
 You can upload images there, and then press the `⋮` button, and `Refresh Metadata` in Plex, and you should now have headshots for those actors/posters for that show in your Plex.
 This helps _everyone_ who uses this plugin, not just you!
 
