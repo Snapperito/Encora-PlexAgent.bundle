@@ -9,12 +9,14 @@ It will also fallback to using [XBMCnfoMoviesImporter](https://github.com/Bubba8
 
 _Please note: The Encora API is rate limited to 30 requests per minute by default. This means that scanning your full library make take time if you have a large amount of recordings in Plex.
 The agent is configured to handle the rate limit and continue processing entries once the limit resets._
+You will also require an API key for [StageMedia.me](https://stagemedia.me) so make sure to generate one over there, or you won't get headshots/posters pulled through.
 
 ---
 
 ### Contents
 
 - [Install instructions](#instructions)
+- [Available title variables](#available-title-variables)
 - [Fixing missing posters/headshots](#fixing-missing-posters--headshots)
 
 ---
@@ -31,13 +33,31 @@ The agent is configured to handle the rate limit and continue processing entries
   - It should look like this:  
     ![Plugin Preview](src/plugins-folder.png)
 - Create a library in Plex with `Encora` as the agent
-- Populate your API Key in the settings
+- Populate your API Keys in the settings
 - Configure the naming of Plex items
   ![Plex Library](src/plex-library.png)
 - In your Plex Settings, make sure you enable XBMCnfoMoviesImporter as a backup agent for Encora
   ![Agent Setting](src/plex-agent.png)
 - Your media items should have `e-{id}` in the name e.g. `Murder Ballad {e-1118317}` **or** have an `.encora-{id}` file inside the folder e.g. `.encora-1118317`
 - For non-Encora items, make sure you have an NFO created with [NFOBuilder](https://github.com/pekempy/NFOBuilder), and then `⋮` button -> `Match` -> `Auto Match` dropdown -> `XBMCnfoMoviesImporter`, that should then detect the NFO and pull the data from it.
+
+---
+
+#### Available Title Variables:
+
+**Text:**
+`{show}` - This is the show's name - e.g. `Hadestown`. Note, if a show has "Part 1" and "Part 2", these should be removed.  
+`{tour}` - The name of the tour - e.g. `West End` or `Broadway`  
+`{master}` - The name of who recorded the item
+
+**Dates:**
+`{date}` - e.g. `December 31, 2024`  
+`{date_iso}` - e.g. `2024-12-31`  
+`{date_usa}` - e.g. `12-31-2024`  
+`{date_numeric}` - e.g. `31-12-2024`  
+If the entry has a 'variant' it will be displayed as `(1)` at the end of the value e.g. `December 31, 2024 (3)`
+
+If a show is missing a month / day, the `date replace character` in the library preferences can be set so for example you can have `xx-xx-2024` or `12-xx-2024` or even `2024-12-##` - any standard character can be used. Only the first one will be used so if you enter multiple letters here just the first gets used.
 
 ---
 

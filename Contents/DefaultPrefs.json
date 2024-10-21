@@ -19,8 +19,14 @@
   },
   {
     "id": "title_format",
-    "label": "Title format (Variables: {show}, {date}, {tour}, {master})",
+    "label": "Title format (Variables: {show}, {date}, {date_usa}, {date_iso}, {date_numeric}, {tour}, {master})",
     "type": "text",
     "default": "{show}"
+  },
+  {
+    "id": "date_replace_char",
+    "label": "For dates missing the day / month, which character should be used to replace (e.g. '2024-11-xx')",
+    "type": "text",
+    "default": "x"
   }
 ]

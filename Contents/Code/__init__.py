@@ -109,27 +109,56 @@ def download_subtitles(recording_id, media, movie):
     except Exception as e:
         Log.Error("[Encora] Failed to download subtitles for recording ID: {}: {}".format(recording_id, str(e)))
 
-# Used for the preference to define the format of Plex Titles
-def format_title(template, data):    
+def format_date(data):
+    replace_char = Prefs['date_replace_char']
+    if (len(replace_char) > 1): 
+        replace_char = replace_char[0]
+    replace_char = replace_char * 2
     date_info = data.get('date', {})
     full_date = ""
+    iso_date = ""
+    usa_date = ""
+    numeric_date = ""
     
     if date_info.get('day_known') is False:
         if date_info.get('month_known') is False:
             full_date = date_info.get('full_date')[:4]  # Return YYYY
+            iso_date = "{}-{}-{}".format(date_info.get('full_date')[:4], replace_char, replace_char)  # Return YYYY-xx-xx
+            usa_date = "{}-{}-{}".format(replace_char, replace_char, date_info.get('full_date')[:4])  # Return xx-xx-YYYY
+            numeric_date = "{}-{}-{}".format(replace_char, replace_char, date_info.get('full_date')[:4])  # Return xx-xx-YYYY
         else:
-            month = int(date_info.get('full_date')[5:7])
-            full_date = "{}, {}".format(month_name(month), date_info.get('full_date')[:4])  # Return Month, YYYY
+            month = date_info.get('full_date')[5:7]
+            full_date = "{}, {}".format(month_name(int(month)), date_info.get('full_date')[:4])  # Return Month, YYYY
+            iso_date = "{}-{}-{}".format(date_info.get('full_date')[:4], month, replace_char)  # Return YYYY-MM-xx
+            usa_date = "{}-{}-{}".format(month, replace_char, date_info.get('full_date')[:4])  # Return MM-xx-YYYY
+            numeric_date = "{}-{}-{}".format(replace_char, month, date_info.get('full_date')[:4])  # Return xx-MM-YYYY
     else:
-        full_date = date_info.get('full_date', '').lower()
+        full_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%B %-d, %Y")
+        iso_date = date_info.get('full_date')
+        usa_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%m-%d-%Y")
+        numeric_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%d-%m-%Y")
+    
     date_variant = date_info.get('date_variant')
-    if date_variant:
-        full_date += " ({})".format(date_variant)
+    variant = " ({})".format(date_variant) if date_variant else ""    
+
+    return {
+        'full_date': full_date + variant,
+        'iso': iso_date + variant,
+        'usa': usa_date + variant,
+        'numeric': numeric_date + variant
+    }
+
+# Used for the preference to define the format of Plex Titles
+def format_title(template, data):    
+    date = format_date(data)
 
     title = template
     title = title.replace('{show}', data.get('show', ''))
     title = title.replace('{tour}', data.get('tour', ''))
-    title = title.replace('{date}', full_date)
+    title = title.replace('{date}', date['full_date'])
+    title = title.replace('{date_iso}', date['iso'])
+    title = title.replace('{date_usa}', date['usa'])
+    title = title.replace('{date_numeric}', date['numeric'])
     title = title.replace('{master}', data.get('master', ''))
     title = title.replace(' - Part One', '')
     title = title.replace(' - Part 1', '')
