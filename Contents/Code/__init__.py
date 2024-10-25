@@ -10,7 +10,7 @@ import urllib
 from   lxml    import etree #
 from   io      import open  # open
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import json
 import requests
@@ -133,10 +133,15 @@ def format_date(data):
             usa_date = "{}-{}-{}".format(month, replace_char, date_info.get('full_date')[:4])  # Return MM-xx-YYYY
             numeric_date = "{}-{}-{}".format(replace_char, month, date_info.get('full_date')[:4])  # Return xx-MM-YYYY
     else:
-        full_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%B %-d, %Y")
-        iso_date = date_info.get('full_date')
-        usa_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%m-%d-%Y")
-        numeric_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%d-%m-%Y")
+        try:
+            full_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%B %d, %Y").replace(" 0", " ")
+            iso_date = date_info.get('full_date')
+            usa_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%m-%d-%Y")
+            numeric_date = datetime.strptime(date_info.get('full_date'), "%Y-%m-%d").strftime("%d-%m-%Y")
+        except ValueError as e:
+            Log(u'[Encora] Date format error: {}'.format(e))
+        except Exception as e:
+            Log(u'[Encora] An unexpected error occurred: {}'.format(e))
     
     date_variant = date_info.get('date_variant')
     variant = " ({})".format(date_variant) if date_variant else ""    
@@ -151,7 +156,6 @@ def format_date(data):
 # Used for the preference to define the format of Plex Titles
 def format_title(template, data):    
     date = format_date(data)
-
     title = template
     title = title.replace('{show}', data.get('show', ''))
     title = title.replace('{tour}', data.get('tour', ''))
@@ -391,13 +395,17 @@ def Update(metadata, media, lang, force, movie):
     try:
         json_recording_details = json_load(ENCORA_API_RECORDING_INFO, recording_id)
         if json_recording_details:
-            #log "downloading subtitles"
-            Log(u'[Encora] Attempting to download subtitles for recording ID: {}'.format(recording_id))
-            download_subtitles(recording_id, media, movie)
+            try:
+                Log(u'[Encora] Attempting to download subtitles for recording ID: {}'.format(recording_id))
+                download_subtitles(recording_id, media, movie)
+            except Exception as e:
+                # Handle the exception (e.g., log the error, retry, etc.)
+                Log(u"[Encora] An error occurred while downloading subtitles: {}".format(e))
+            Log(u'[Encora] Setting metadata for recording ID: {}'.format(recording_id))
             # Update metadata fields based on the Encora API response
             metadata.title = format_title(Prefs['title_format'], json_recording_details)
             metadata.original_title = json_recording_details['show']
-            metadata.originally_available_at = Datetime.ParseDate(json_recording_details['date']['full_date']).date()
+            metadata.originally_available_at = (datetime.strptime(json_recording_details['date']['full_date'], "%Y-%m-%d") + timedelta(days=1)).date()
             metadata.studio = json_recording_details['tour']
             metadata.directors.clear()
             director = metadata.directors.new()
