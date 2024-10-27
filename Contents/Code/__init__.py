@@ -450,7 +450,7 @@ def Update(metadata, media, lang, force, movie):
             Log(u'[Encora] Media DB API URL: {}'.format(media_db_api_url))
             ## make request to mediadb for poster / headshots
             headers = {
-                #'Authorization': 'Bearer {}'.format(stagemedia_api_key()),
+                'Authorization': 'Bearer {}'.format(stagemedia_api_key()),
                 'User-Agent': 'PlexAgent/0.9'
             }
             request = urllib2.Request(media_db_api_url, headers=headers)
