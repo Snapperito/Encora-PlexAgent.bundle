@@ -421,6 +421,9 @@ def Update(metadata, media, lang, force, movie):
             Log(u'[Encora] studio: {}'.format(metadata.studio))
             Log(u'[Encora] summary: {}'.format(metadata.summary))
 
+            if (Prefs['create_show_collections']): 
+                collection = metadata.collections.add(json_recording_details["show"])
+
             # Set content rating based on NFT status
             nft_date = json_recording_details['nft']['nft_date']
             nft_forever = json_recording_details['nft']['nft_forever']

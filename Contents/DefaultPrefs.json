@@ -18,6 +18,12 @@
     "default": true
   },
   {
+    "id": "create_show_collections",
+    "label": "Create a 'Collection' for each Show e.g. Waitress",
+    "type": "bool",
+    "default": false
+  },
+  {
     "id": "title_format",
     "label": "Title format (Variables: {show}, {date}, {date_usa}, {date_iso}, {date_numeric}, {tour}, {master})",
     "type": "text",
