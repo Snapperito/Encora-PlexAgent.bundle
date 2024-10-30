@@ -446,7 +446,7 @@ def Update(metadata, media, lang, force, movie):
 
             ## Prepare media db api query 
             ## TODO: Fix url once API is ready
-            media_db_api_url = "https://beta.stagemedia.me/api/images?show_id={}&actor_ids={}".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
+            media_db_api_url = "https://stagemedia.me/api/images?show_id={}&actor_ids={}".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
             Log(u'[Encora] Media DB API URL: {}'.format(media_db_api_url))
             ## make request to mediadb for poster / headshots
             headers = {
