@@ -34,9 +34,9 @@ You will also require an API key for [StageMedia.me](https://stagemedia.me) so m
     ![Plugin Preview](src/plugins-folder.png)
 - Create a library in Plex with `Encora` as the agent
 - Populate your API Keys in the settings
-    - Note: 
-        The **Encora** API key you will have to request via a support request on the site.  
-        The **StageMedia** API key is self-generated from your profile  
+  - Note:
+    The **Encora** API key you will have to request via a support request on the site.  
+     The **StageMedia** API key is self-generated from your profile
 - Configure the naming of Plex items
   ![Plex Library](src/plex-library.png)
 - In your Plex Settings, make sure you enable XBMCnfoMoviesImporter as a backup agent for Encora
@@ -67,7 +67,9 @@ If a show is missing a month / day, the `date replace character` in the library 
 ### Fixing missing posters / headshots
 
 If posters or headshots are missing from your Plex after matching on Encora, then you will need to contribute to the [StageMedia.me database](https://stagemedia.me).
-You can upload images there, and then press the `⋮` button, and `Refresh Metadata` in Plex, and you should now have headshots for those actors/posters for that show in your Plex.
+You can upload images there, and then press the `⋮` button, and `Refresh Metadata` in Plex, and you should now have headshots for those actors/posters for that show in your Plex.  
+NB: if `Refresh Metadata` does not work, you may need to re-match, or fix the match manually.
+
 This helps _everyone_ who uses this plugin, not just you!
 
 You will need your own account for this site, so sign up and contribute what you can :)
