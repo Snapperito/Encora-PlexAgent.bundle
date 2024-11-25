@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import time
 import json
 import requests
+import traceback
 
 ###Mini Functions ###
 def natural_sort_key     (s):  return [int(text) if text.isdigit() else text for text in re.split(re.compile('([0-9]+)'), str(s).lower())]  ### Avoid 1, 10, 2, 20... #Usage: list.sort(key=natural_sort_key), sorted(list, key=natural_sort_key)
@@ -180,17 +181,20 @@ def month_name(month):
     ][month]
 
 def clean_html_description(html_description):
-    # Preserve line breaks
-    text = re.sub(r'</p>', '\n', html_description)
-    # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
-    # Manually replace common HTML entities
-    text = text.replace('&#039;', "'")
-    text = text.replace('&quot;', '"')
-    text = text.replace('&amp;', '&')
-    text = text.replace('&lt;', '<')
-    text = text.replace('&gt;', '>')
-    return text
+    if html_description:
+        # Preserve line breaks
+        text = re.sub(r'</p>', '\n', html_description)
+        # Remove HTML tags
+        text = re.sub(r'<[^>]+>', '', text)
+        # Manually replace common HTML entities
+        text = text.replace('&#039;', "'")
+        text = text.replace('&quot;', '"')
+        text = text.replace('&amp;', '&')
+        text = text.replace('&lt;', '<')
+        text = text.replace('&gt;', '>')
+        return text
+    else:
+        return ''
 
 ### Get media root folder ###
 def GetLibraryRootPath(dir):
@@ -369,7 +373,9 @@ def Search(results, media, lang, manual, movie):
                 Log(u''.ljust(157, '='))
                 return
         except Exception as e:
-            Log(u'[Encora] search() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
+            tb = traceback.format_exc()
+            Log(u'[Encora] update() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
+            Log(u'[Encora] update() - Traceback: {}'.format(tb))
     
     # If no recording ID is found, log and return a default result
     Log(u'[Encora] search() - No recording ID found in folder name: "{}"'.format(folder_name))
@@ -404,22 +410,23 @@ def Update(metadata, media, lang, force, movie):
             Log(u'[Encora] Setting metadata for recording ID: {}'.format(recording_id))
             # Update metadata fields based on the Encora API response
             metadata.title = format_title(Prefs['title_format'], json_recording_details)
+            Log(u'[Encora] title: {}'.format(metadata.title))
             metadata.original_title = json_recording_details['show']
+            Log(u'[Encora] original_title: {}'.format(metadata.original_title))
             metadata.originally_available_at = (datetime.strptime(json_recording_details['date']['full_date'], "%Y-%m-%d") + timedelta(days=1)).date()
+            Log(u'[Encora] originally_available_at: {}'.format(metadata.originally_available_at))
             metadata.studio = json_recording_details['tour']
+            Log(u'[Encora] studio: {}'.format(metadata.studio))
             metadata.directors.clear()
             director = metadata.directors.new()
             director.name = json_recording_details['master']
+            Log(u'[Encora] director: {}'.format(director.name))
             show_description_html = json_recording_details.get('metadata', {}).get('show_description', 'Not provided. Edit the show on Encora to populate this!')
             show_description = clean_html_description(show_description_html)
             metadata.summary = show_description
+            Log(u'[Encora] show_description_html: {}'.format(clean_html_description(show_description_html)))
             #log updated metadata
             Log(u'[Encora] Updated metadata for recording ID: {}'.format(recording_id))
-            Log(u'[Encora] title: {}'.format(metadata.title))
-            Log(u'[Encora] original_title: {}'.format(metadata.original_title))
-            Log(u'[Encora] originally_available_at: {}'.format(metadata.originally_available_at))
-            Log(u'[Encora] studio: {}'.format(metadata.studio))
-            Log(u'[Encora] summary: {}'.format(metadata.summary))
 
             if (Prefs['create_show_collections']): 
                 collection = metadata.collections.add(json_recording_details["show"])
@@ -514,7 +521,9 @@ def Update(metadata, media, lang, force, movie):
                     Log.Info(u'[Encora]  add_master_as_director exception: {}'.format(e))
             return
     except Exception as e:
+        tb = traceback.format_exc()
         Log(u'[Encora] update() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
+        Log(u'[Encora] update() - Traceback: {}'.format(tb))
 
     Log('=== End Of Agent Call, errors after that are Plex related ==='.ljust(157, '='))
 
@@ -523,7 +532,9 @@ def Update(metadata, media, lang, force, movie):
     try:
         json_recording_details = json_load(ENCORA_API_RECORDING_INFO, guid)
     except Exception as e:
-        Log(u'[Encora] json_recording_details - Could not retrieve data from Encora API. Exception: {}'.format(e))
+        tb = traceback.format_exc()
+        Log(u'[Encora] update() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
+        Log(u'[Encora] update() - Traceback: {}'.format(tb))
     else:
         Log('[Encora] Movie mode - json_recording_details - Loaded recording details from: "{}"'.format(ENCORA_API_RECORDING_INFO.format(guid, 'personal_key')))
         date = Datetime.ParseDate(json_recording_details['date']['full_date'])
