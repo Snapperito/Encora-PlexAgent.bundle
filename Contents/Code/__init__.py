@@ -495,7 +495,7 @@ def Update(metadata, media, lang, force, movie):
                 else:
                     role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble"  # Character name = role.role
                 
-                # Assign the performer's photo URL if it exists or use the Imgur link if URL is null
+                # Assign the performer's photo URL if it exists or use the ImgBB link if URL is null
                 performer_id = cast_member['performer']['id']
                 performer_url = cast_member['performer']['url']
                 
@@ -503,7 +503,7 @@ def Update(metadata, media, lang, force, movie):
                     if performer_url_map[performer_id] != None:
                         role.photo = performer_url_map[performer_id]
                     else:
-                        role.photo = "https://i.imgur.com/cXqYZEu.png"
+                        role.photo = "https://i.ibb.co/xSHDBZDp/c-Xq-YZEu.png"
                 else:
                     role.photo = performer_url
 
