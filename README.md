@@ -3,7 +3,7 @@
 # Encora Plex Agent
 
 This agent will scrape recording data from Encora, including downloading subtitles.
-It will also fallback to using [XBMCnfoMoviesImporter](https://github.com/Bubba8291/XBMCnfoMoviesImporter.bundle/archive/master.zip) if no encora ID is found, so that NFO files (created with [NFOBuilder](https://github.com/pekempy/NFOBuilder)) can be used to set the data.
+It will also fallback to using [XBMCnfoMoviesImporter](https://github.com/gboudreau/XBMCnfoMoviesImporter.bundle/archive/refs/heads/master.zip) if no encora ID is found, so that NFO files (created with [NFOBuilder](https://github.com/pekempy/NFOBuilder)) can be used to set the data.
 
 <sup>Thanks to [Bubba8291](https://github.com/Bubba8291) for working on the [Headshot Database](https://stagemedia.me) used for the agent.</sup>
 
