@@ -73,3 +73,57 @@ NB: if `Refresh Metadata` does not work, you may need to re-match, or fix the ma
 This helps _everyone_ who uses this plugin, not just you!
 
 You will need your own account for this site, so sign up and contribute what you can :)
+
+---
+
+### Additional "flair"
+
+If you want to add an `Edition` to your Plex items automatically, I found a way using [N8N](https://n8n.io/) which I self-host.
+The purpose of `Edition` shows the "master" (pulled from Director on plex) underneath the show name, next to the year.
+
+The workflow I use is as follows:
+
+1. Schedule Trigger -> Daily    
+2. Query -> PlexAPI for Theatre Library Items    
+    HTTP Request    
+    GET `http://{local plex IP}:32400/library/sections/{theatre library ID}/all`    
+        where {theatre library ID} is the ID of your theatre library in Plex, e.g. `3`    
+    Auth Type:    
+        Generic Credential > Header Auth    
+        Header: `X-Plex-Token`: {your Plex token}    
+3. `Code` node with this JS:
+```js
+const items = [];
+
+const videos = $json.MediaContainer?.Metadata || [];
+
+for (const v of videos) {
+  const directorTags = (v.Director || []).map(d => d.tag);
+
+  const newEditionTitle = directorTags.length
+    ? directorTags.join(" / ")
+    : null;
+
+  items.push({
+    ratingKey: v.ratingKey,
+    title: v.title,
+    editionTitle: v.editionTitle || null,
+    newEditionTitle,
+    mediaPath: v.Media?.[0]?.Part?.[0]?.file || "",
+  });
+}
+
+return items.map(i => ({ json: i }));
+```
+4. `If` block    
+        Condition 1: `{{ $json.newEditionTitle }}` is not empty    
+        Condition 2: `{{ $json.editionTitle }}` is not equal to `{{ $json.newEditionTitle }}`    
+
+5. HTTP Request    
+        PUT `http://{local plex IP}:32400/library/metadata/{$json.ratingKey}}`    
+        Auth Type:    
+            Generic Credential > Header Auth    
+            Header: `X-Plex-Token`: {your Plex token}    
+    
+This has worked for me, and I'm happy to talk through/show bits in discord!    
+        

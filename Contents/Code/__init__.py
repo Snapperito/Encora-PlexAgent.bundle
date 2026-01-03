@@ -111,7 +111,7 @@ def download_subtitles(recording_id, media, movie):
 
 def format_date(data):
     replace_char = Prefs['date_replace_char']
-    if (len(replace_char) > 1): 
+    if (len(replace_char) > 1):
         replace_char = replace_char[0]
     replace_char = replace_char * 2
     date_info = data.get('date', {})
@@ -119,7 +119,7 @@ def format_date(data):
     iso_date = ""
     usa_date = ""
     numeric_date = ""
-    
+
     if date_info.get('day_known') is False:
         if date_info.get('month_known') is False:
             full_date = date_info.get('full_date')[:4]  # Return YYYY
@@ -142,9 +142,9 @@ def format_date(data):
             Log(u'[Encora] Date format error: {}'.format(e))
         except Exception as e:
             Log(u'[Encora] An unexpected error occurred: {}'.format(e))
-    
+
     date_variant = date_info.get('date_variant')
-    variant = " ({})".format(date_variant) if date_variant else ""    
+    variant = " ({})".format(date_variant) if date_variant else ""
 
     return {
         'full_date': full_date + variant,
@@ -153,8 +153,68 @@ def format_date(data):
         'numeric': numeric_date + variant
     }
 
+def merge_cast_by_performer(cast):
+    merged = {}
+
+    for member in cast:
+        performer = member.get('performer')
+        if not performer:
+            continue
+
+        pid = performer.get('id')
+        if pid is None:
+            continue
+
+        if pid not in merged:
+            merged[pid] = {
+                'performer': performer,
+                'characters': [],
+                'statuses': []
+            }
+
+        character = member.get('character')
+        if character:
+            merged[pid]['characters'].append(character)
+
+        status = member.get('status')
+        if status:
+            merged[pid]['statuses'].append(status)
+
+    return merged
+
+def chunked(iterable, size):
+    chunks = []
+    for i in range(0, len(iterable), size):
+        chunks.append(iterable[i:i + size])
+    return chunks
+
+
+def merge_mediadb_responses(responses):
+    merged = {
+        'performers': [],
+        'posters': []
+    }
+
+    seen_performers = set()
+
+    for resp in responses:
+        # Merge performers
+        for p in resp.get('performers', []):
+            pid = p.get('id')
+            if pid in seen_performers:
+                continue
+            seen_performers.add(pid)
+            merged['performers'].append(p)
+
+        # Merge posters (URLs are unique enough)
+        for poster in resp.get('posters', []):
+            if poster not in merged['posters']:
+                merged['posters'].append(poster)
+
+    return merged
+
 # Used for the preference to define the format of Plex Titles
-def format_title(template, data):    
+def format_title(template, data):
     date = format_date(data)
     title = template
     title = title.replace('{show}', data.get('show', ''))
@@ -289,32 +349,32 @@ def json_load(template, *args):
         except Exception as e:
             json_data = JSON.ObjectFromString(e.content)
             raise ValueError('code: {}, message: {}'.format(Dict(json_data, 'error', 'code'), Dict(json_data, 'error', 'message')))
-        
+
         if json_data:
             json_data['items'].extend(json_page['items'])
         else:
             json_data = json_page
-        
+
         iteration += 1
 
     return json_data
 
 def find_encora_id_file(directory):
     pattern = re.compile(r'\.encora-(\d+)')
-    
+
     for filename in os.listdir(directory):
         match = pattern.match(filename)
         if match:
             return match.group(1)
-    
+
     # If no match found, check for .encora-id file
     encora_id_file = os.path.join(directory, '.encora-id')
     if os.path.isfile(encora_id_file):
         with open(encora_id_file, 'r') as file:
             return file.read().strip()
-    
+
     return None
-    
+
 def Start():
   #HTTP.CacheTime                  = CACHE_1DAY
   HTTP.Headers['User-Agent'     ] = 'PlexAgent/0.9'
@@ -325,7 +385,7 @@ def Search(results, media, lang, manual, movie):
     displayname = sanitize_path(os.path.basename((media.name if movie else media.show) or ""))
     filename = media.items[0].parts[0].file if movie else media.filename or media.show
     dir = GetMediaDir(media, movie)
-    
+
     try:
         filename = sanitize_path(filename)
     except Exception as e:
@@ -338,10 +398,10 @@ def Search(results, media, lang, manual, movie):
         filename = urllib2.unquote(filename)
     except Exception as e:
         Log('[Encora] search() - Exception3: filename: "{}", e: "{}"'.format(filename, e))
-    
+
     Log(u''.ljust(157, '='))
     Log(u"[Encora] Search() - dir: {}, filename: {}, displayname: {}".format(dir, filename, displayname))
-    
+
     # Extract recording ID from the folder name
     folder_name = os.path.basename(dir)
     # Try to find the recording ID from folder name
@@ -373,7 +433,7 @@ def Search(results, media, lang, manual, movie):
                 return
         except Exception as e:
             Log(u'[Encora] search() - Could not retrieve data from Encora API for: "{}", Exception: "{}"'.format(recording_id, e))
-    
+
     # If no recording ID is found, log and return a default result
     Log(u'[Encora] search() - No recording ID found in folder name: "{}"'.format(folder_name))
     library, root, path = GetLibraryRootPath(dir)
@@ -424,7 +484,7 @@ def Update(metadata, media, lang, force, movie):
             Log(u'[Encora] studio: {}'.format(metadata.studio))
             Log(u'[Encora] summary: {}'.format(metadata.summary))
 
-            if (Prefs['create_show_collections']): 
+            if (Prefs['create_show_collections']):
                 collection = metadata.collections.add(json_recording_details["show"])
 
             # Set content rating based on NFT status
@@ -444,22 +504,51 @@ def Update(metadata, media, lang, force, movie):
                 metadata.content_rating = ' '
 
             # Create a cast array
-            cast_array = json_recording_details['cast']
+            raw_cast = json_recording_details['cast']
+            merged_cast = merge_cast_by_performer(raw_cast)
+
+            Log(u"[Encora] Cast merged: {} entries → {} performers".format(
+                len(raw_cast),
+                len(merged_cast)
+            ))
+
             show_id = json_recording_details['metadata']['show_id']
 
-            ## Prepare media db api query 
-            ## TODO: Fix url once API is ready
-            media_db_api_url = "https://stagemedia.me/api/images?show_id={}&actor_ids={}".format(show_id, ','.join([str(x['performer']['id']) for x in cast_array]))
-            Log(u'[Encora] Media DB API URL: {}'.format(media_db_api_url))
-            ## make request to mediadb for poster / headshots
+            ## Prepare media db api query
             headers = {
                 'Authorization': 'Bearer {}'.format(stagemedia_api_key()),
                 'User-Agent': 'PlexAgent/0.9'
             }
-            request = urllib2.Request(media_db_api_url, headers=headers)
-            response = urllib2.urlopen(request)
-            api_response = json.load(response)
-            Log('[Encora] Media DB API response: {}'.format(api_response))
+
+            all_actor_ids = list(merged_cast.keys())
+            responses = []
+
+            for batch in chunked(all_actor_ids, 50):
+                actor_ids = ','.join(str(pid) for pid in batch)
+                media_db_api_url = (
+                    "https://stagemedia.me/api/images?"
+                    "show_id={}&actor_ids={}".format(show_id, actor_ids)
+                )
+
+                Log(u'[Encora] Media DB API URL ({} actors): {}'.format(
+                    len(batch), media_db_api_url
+                ))
+
+
+                try:
+                    request = urllib2.Request(media_db_api_url, headers=headers)
+                    response = urllib2.urlopen(request)
+                    responses.append(json.load(response))
+                except Exception as e:
+                    Log.Error(u'[Encora] Media DB API batch failed: {}'.format(e))
+
+            api_response = merge_mediadb_responses(responses)
+
+            Log(u'[Encora] Media DB merged response: {} performers, {} posters'.format(
+                len(api_response.get('performers', [])),
+                len(api_response.get('posters', []))
+            ))
+
 
             # Update genres based on recording type
             metadata.genres.clear()
@@ -472,12 +561,12 @@ def Update(metadata, media, lang, force, movie):
 
             def get_order(cast_member):
                 return cast_member['character'].get('order', 999) if cast_member['character'] else 999
-            
+
             performer_url_map = {performer['id']: performer['url'] for performer in api_response['performers']}
 
             for key in metadata.posters.keys():
                 del metadata.posters[key]
-            
+
             # set the posters from API
             if 'posters' in api_response:
                 for full_poster_url in api_response['posters']:
@@ -485,27 +574,38 @@ def Update(metadata, media, lang, force, movie):
                     Log(u'[Encora] Full Poster URL: {}'.format(full_poster_url))
                     metadata.posters[full_poster_url] = Proxy.Preview(HTTP.Request(full_poster_url).content)
 
-            sorted_cast = sorted(json_recording_details['cast'], key=get_order)
+            def character_sort_key(c):
+                return c.get('order', 999)
+
             metadata.roles.clear()
-            for cast_member in sorted_cast:
+
+            # Sort performers by their earliest character appearance
+            sorted_performers = sorted(
+                merged_cast.values(),
+                key=lambda e: min(
+                    [c.get('order', 999) for c in e['characters']] or [999]
+                )
+            )
+
+            for entry in sorted_performers:
+                performer = entry['performer']
+                characters = entry['characters']
+
                 role = metadata.roles.new()
-                role.name = cast_member['performer']['name']  # Performer name = role.name
-                if cast_member['status']:
-                    role.role = cast_member['status']['abbreviation'].lower() + ' ' + cast_member['character']['name']  # Character status + name = role.role
+                role.name = performer['name']
+
+                # Combine all character names, ordered
+                role.role = ', '.join(
+                    c['name'] for c in sorted(characters, key=character_sort_key)
+                )
+
+                # Assign photo
+                performer_id = performer['id']
+                if performer_id in performer_url_map and performer_url_map[performer_id]:
+                    role.photo = performer_url_map[performer_id]
                 else:
-                    role.role = cast_member['character']['name'] if cast_member['character'] else "Ensemble"  # Character name = role.role
-                
-                # Assign the performer's photo URL if it exists or use the ImgBB link if URL is null
-                performer_id = cast_member['performer']['id']
-                performer_url = cast_member['performer']['url']
-                
-                if performer_id in performer_url_map:
-                    if performer_url_map[performer_id] != None:
-                        role.photo = performer_url_map[performer_id]
-                    else:
-                        role.photo = "https://i.ibb.co/xSHDBZDp/c-Xq-YZEu.png"
-                else:
-                    role.photo = performer_url
+                    role.photo = performer.get('url') or "https://i.ibb.co/xSHDBZDp/c-Xq-YZEu.png"
+
 
             if Prefs['add_master_as_director']:
                 metadata.directors.clear()
@@ -543,7 +643,7 @@ def Update(metadata, media, lang, force, movie):
             metadata.genres.add(json_recording_details['metadata']['media_type'])
         metadata.year = date.year
         Log(u'[Encora] year: {}'.format(date.year))
-        
+
         # Set content rating based on NFT status
         nft_date = json_recording_details['nft']['nft_date']
         nft_forever = json_recording_details['nft']['nft_forever']
@@ -580,7 +680,7 @@ def Update(metadata, media, lang, force, movie):
             except Exception as e:
                 Log.Info(u'[Encora] add_master_as_director exception: {}'.format(e))
         return
-    
+
     Log('=== End Of Agent Call, errors after that are Plex related ==='.ljust(157, '='))
 
 ### Agent declaration ##################################################################################################################################################
