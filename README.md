@@ -82,6 +82,7 @@ If you want to add an `Edition` to your Plex items automatically, I found a way 
 The purpose of `Edition` shows the "master" (pulled from Director on plex) underneath the show name, next to the year.
 
 The workflow I use is as follows:
+(You can find the workflow in the `n8n-workflow.json` file, and paste it into n8n, then just fix your URLs/Plex Token)
 
 1. Schedule Trigger -> Daily    
 2. Query -> PlexAPI for Theatre Library Items    
